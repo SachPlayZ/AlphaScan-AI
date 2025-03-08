@@ -29,6 +29,8 @@ import { eduTestnet } from "@/app/config";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import { abi, contractAddress } from "@/app/abi";
+import { useReadContract, useWriteContract } from "wagmi";
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -39,6 +41,21 @@ export default function WalletPage() {
   const [isSendingTokens, setIsSendingTokens] = useState(false);
   const [recipientAddress, setRecipientAddress] = useState("");
   const [sendAmount, setSendAmount] = useState("");
+  const { writeContractAsync: mapWallet } = useWriteContract();
+
+  const { data: agentPublicKey } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getPublicKey",
+    args: [],
+  });
+  const { data: agentPrivateKey } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getPrivateKey",
+    args: [],
+  });
+  
 
   useEffect(() => {
     // Get or create wallet on component mount
@@ -258,6 +275,24 @@ export default function WalletPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Map Wallet Button */}
+                <div className="mb-4">
+                  <Button
+                    variant="outline"
+                    className="w-full neon-border-button"
+                    onClick={() => {
+                      toast({
+                        title: "Map Wallet",
+                        description: "Wallet mapping feature coming soon!",
+                        variant: "default",
+                      });
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Map Wallet to External Service
+                  </Button>
                 </div>
 
                 {/* Wallet Keys and Address */}
