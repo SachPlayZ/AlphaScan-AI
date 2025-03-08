@@ -9,50 +9,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/navbar";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full glass">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
-            <Link href="/" className="flex items-center space-x-2">
-              <BrainCircuit className="h-6 w-6 text-primary" />
-              <span className="inline-block font-bold neon-text-purple">
-                TradeScan AI
-              </span>
-            </Link>
-          </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-1">
-              <Link
-                href="#features"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                Features
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                How It Works
-              </Link>
-              <Link
-                href="#faq"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                FAQ
-              </Link>
-              <Button
-                size="sm"
-                className="bg-primary hover:bg-primary/80 neon-glow"
-              >
-                Get Started
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Navbar />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container px-4 md:px-6">
@@ -64,7 +26,7 @@ export default function Home() {
                     <span className="neon-text-purple">Powered by AI</span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    TradeScan AI analyzes market trends across social platforms
+                    AlphaScan AI analyzes market trends across social platforms
                     to provide you with data-driven insights for smarter trading
                     decisions.
                   </p>
@@ -72,10 +34,13 @@ export default function Home() {
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button
                     size="lg"
-                    className="bg-primary hover:bg-primary/80 neon-glow"
+                    className="bg-primary hover:bg-primary/80 neon-glow group transition-all duration-300 ease-in-out"
+                    asChild
                   >
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <Link href="/login">
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 ease-in-out group-hover:translate-x-1" />
+                    </Link>
                   </Button>
                   <Button variant="outline" size="lg" className="neon-border">
                     Learn More
@@ -228,7 +193,7 @@ export default function Home() {
                   Process
                 </div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                  How <span className="neon-text-cyan">TradeScan AI</span> Works
+                  How <span className="neon-text-cyan">AlphaScan AI</span> Works
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Our transparent process helps you understand exactly how we
@@ -240,7 +205,9 @@ export default function Home() {
               <div className="flex flex-col space-y-6">
                 <div className="flex items-start space-x-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground neon-glow">
-                    1
+                    <span className="h-4 w-10 text-center text-sm leading-none">
+                      1
+                    </span>
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-bold neon-text-purple">
@@ -257,7 +224,9 @@ export default function Home() {
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
                     style={{ boxShadow: "0 0 5px #00c8ff, 0 0 20px #00c8ff" }}
                   >
-                    2
+                    <span className="h-4 w-10 text-center text-sm leading-none">
+                      2
+                    </span>
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-bold neon-text-cyan">
@@ -274,7 +243,9 @@ export default function Home() {
                     className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-accent-foreground"
                     style={{ boxShadow: "0 0 5px #00ff4c, 0 0 20px #00ff4c" }}
                   >
-                    3
+                    <span className="h-4 w-10 text-center text-sm leading-none">
+                      3
+                    </span>
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-bold neon-text-green">
@@ -288,7 +259,9 @@ export default function Home() {
                 </div>
                 <div className="flex items-start space-x-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground neon-glow">
-                    4
+                    <span className="h-4 w-10 text-center text-sm leading-none">
+                      4
+                    </span>
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-bold neon-text-purple">
@@ -393,10 +366,13 @@ export default function Home() {
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Button
                   size="lg"
-                  className="bg-primary hover:bg-primary/80 neon-glow"
+                  className="bg-primary hover:bg-primary/80 neon-glow group transition-all duration-300 ease-in-out"
+                  asChild
                 >
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <Link href="/login">
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 ease-in-out group-hover:translate-x-1" />
+                  </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="neon-border">
                   View Demo
@@ -409,7 +385,7 @@ export default function Home() {
       <footer className="w-full glass py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © 2025 <span className="neon-text-purple">TradeScan AI</span>. All
+            © 2025 <span className="neon-text-purple">AlphaScan AI</span>. All
             rights reserved.
           </p>
           <div className="flex items-center space-x-4">
