@@ -120,8 +120,8 @@ export default function LoginPage() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Redirect to dashboard on successful verification
-      router.push("/dashboard");
+      // Redirect to group selection page on successful verification
+      router.push("/select-group");
     } catch (error) {
       console.error("Error verifying OTP:", error);
       setIsVerifying(false);
