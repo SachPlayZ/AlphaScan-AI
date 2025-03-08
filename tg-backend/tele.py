@@ -424,7 +424,7 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
                 last_name = getattr(sender, "last_name", "") or ""
                 sender_name = f"{first_name} {last_name}"
                 sender_name = sender_name.strip() or sender.username or "Unknown"
-                process_message(watch_entry['group_name'], watch_entry['topic_name'], sender_name, event.message.text, user_id)
+                await process_message(watch_entry['group_name'], watch_entry['topic_name'], sender_name, event.message.text, user_id)
 
             except Exception as e:
                 print(f"Error in message handler: {str(e)}")
@@ -451,7 +451,7 @@ async def get_queue():
     return queue
 
 
-def process_message(group_name: str, topic_name: str, sender_name: str, message_text: str, user_id: str):
+async def process_message(group_name: str, topic_name: str, sender_name: str, message_text: str, user_id: str):
     global queue
 
     queue[topic_name] = queue.get(topic_name, [])
@@ -463,8 +463,6 @@ def process_message(group_name: str, topic_name: str, sender_name: str, message_
         "user_id": user_id,
         "overlap": False
     })
-    print("Appended message to queue")
-    print(len(queue[topic_name]))
     if len(queue[topic_name]) == 10:
         last_10_messages = queue[topic_name]
         queue[topic_name] = []
@@ -472,7 +470,7 @@ def process_message(group_name: str, topic_name: str, sender_name: str, message_
         for message in overlap_messages:
             message["overlap"] = True
             queue[topic_name].append(message)
-        print(json.dumps(analyse_texts(last_10_messages), indent=4))
+        await analyse_texts(last_10_messages)
 
 
 def generate(prompt: str):
@@ -504,26 +502,59 @@ def get_token_balance(token: str) -> bool:
     # TODO: Get token balance
     return True
 
-def analyse_texts(queue: List[Dict]) -> Any:
+
+async def log_action(action: str, input_data: Any, output_data: Any) -> None:
+    """
+    Logs an action with its input and output to the database
+    
+    Args:
+        action: The name/type of action being logged
+        input_data: The input data for the action
+        output_data: The output/result of the action
+    """
+    try:
+        log_entry = {
+            "timestamp": datetime.utcnow(),
+            "action": action,
+            "input": input_data,
+            "output": output_data
+        }
+        
+        await db["logs"].insert_one(log_entry)
+    except Exception as e:
+        print(f"Error logging action: {str(e)}")
+
+
+async def analyse_texts(queue: List[Dict]) -> Any:
     tg_alpha = get_alpha(queue)
+    await log_action("Get Alpha from Group Texts", queue, tg_alpha)
     if len(tg_alpha) == 0:
+        await log_action("Analyse Texts", tg_alpha, "No tokens detected")
         return
     for token in tg_alpha:
+        await log_action("Analyse Each Alpha", token, "Analyzing alpha")
         if token["sentiment"] == "positive":
+            await log_action("Check ETH Balance [Alpha is positive so we need to buy using ETH]", token, "Checking ETH balance")
             if not get_eth_balance():
+                await log_action("Check ETH Balance", token, "ETH balance is not enough")
                 return
         elif token["sentiment"] == "negative":
+            await log_action("Check Token Balance [Alpha is negative so we need to sell the token]", token, "Checking token balance")
             if not get_token_balance(token["token"]):
+                await log_action("Check Token Balance", token, "Token balance is not enough")
                 return
-        _, sentiment, valid = validation_layer(token)
+        _, sentiment, valid = await validation_layer(token)
         if not valid:
+            await log_action("Validation Layer Declined", token, "Token is not valid")
             return
         trust, pnl_potential = trust_layer(sentiment, token)
         if not trust:
+            await log_action("Trust Layer Declined", token, "Token is not trusted")
             return
         if abs(pnl_potential) < 10:
+            await log_action("PNL Potential is too low", token, "PNL Potential is too low")
             return
-        transaction_layer(token)
+        await transaction_layer(token)
     return
 
 
@@ -596,16 +627,28 @@ def get_pnl_potential(data: Dict):
     return profit_or_loss_potential
 
 
-def trust_layer(sentiment: str, token: Dict) -> Tuple[bool, float]:
+async def trust_layer(sentiment: str, token: Dict) -> Tuple[bool, float]:
     historical_data = get_historical_data(token)
+    await log_action("Get Historical Data", token, historical_data)
     trends = detect_trend(historical_data)
-    
+    await log_action("Detect Trends", token, trends)
     if not trends["prices"] == "positive" and sentiment == "positive":
+        await log_action("Sentiment and Trends do not match", {
+            "token": token,
+            "sentiment": sentiment,
+            "trends": trends
+        }, "Sentiment and Trends do not match")
         return False
     if not trends["prices"] == "negative" and sentiment == "negative":
+        await log_action("Sentiment and Trends do not match", {
+            "token": token,
+            "sentiment": sentiment,
+            "trends": trends
+        }, "Sentiment and Trends do not match")
         return False
     
     pnl_potential = get_pnl_potential(historical_data)
+    await log_action("Get PNL Potential", token, pnl_potential)
     
     return True, pnl_potential
 
@@ -661,11 +704,15 @@ def analyse_tweets(tweets: List[str], token: str) -> Dict:
     return from_json(response, allow_inf_nan=True, allow_partial=True)
 
 
-def validation_layer(alpha: Dict) -> Tuple[List[str], Dict, bool]:
+async def validation_layer(alpha: Dict) -> Tuple[List[str], Dict, bool]:
     tweets = get_tweets(alpha)
+    await log_action("Get Tweets", alpha, tweets)
     sentiment = analyse_tweets(tweets, alpha["token"])["sentiment"]
+    await log_action("Analyse Tweets", alpha, sentiment)
     if not sentiment == alpha["sentiment"]:
+        await log_action("Validation Layer", alpha, "Sentiment does not match")
         return tweets, sentiment, False
+    await log_action("Validation Layer", alpha, "Sentiment matches")
     return tweets, sentiment, True
 
 def get_alpha(queue: List[Dict]):
