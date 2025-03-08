@@ -1,0 +1,11 @@
+cryptography
+cryptography.egg
+fastapi
+groq
+langsmith
+motor
+pydantic
+pydantic_core
+python-dotenv
+Telethon
+uvicorn
