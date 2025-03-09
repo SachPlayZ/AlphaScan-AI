@@ -43,39 +43,95 @@ export default function WalletPage() {
   const [sendAmount, setSendAmount] = useState("");
   const { writeContractAsync: mapWallet } = useWriteContract();
 
-  const { data: agentPublicKey } = useReadContract({
-    address: contractAddress,
-    abi: abi,
-    functionName: "getPublicKey",
-    args: [],
-  });
-  const { data: agentPrivateKey } = useReadContract({
-    address: contractAddress,
-    abi: abi,
-    functionName: "getPrivateKey",
-    args: [],
-  });
-  
+  const { data: agentPublicKey, isLoading: isPublicKeyLoading } =
+    useReadContract({
+      address: contractAddress,
+      abi: abi,
+      functionName: "getPublicKey",
+      args: [],
+    });
+  const { data: agentPrivateKey, isLoading: isPrivateKeyLoading } =
+    useReadContract({
+      address: contractAddress,
+      abi: abi,
+      functionName: "getPrivateKey",
+      args: [],
+    });
 
   useEffect(() => {
     // Get or create wallet on component mount
     const fetchWallet = async () => {
-      const walletData = getOrCreateWallet();
+      // Check if agent keys exist on the blockchain
+      if (agentPublicKey && agentPrivateKey) {
+        // Use the keys from the blockchain
+        const walletData: WalletData = {
+          address: agentPublicKey as string,
+          privateKey: agentPrivateKey as string,
+          balance: 0,
+          eduBalance: 0,
+          transactions: [],
+        };
 
-      try {
-        // Update EDU balance
-        const updatedWallet = await updateEduBalance(walletData);
-        setWallet(updatedWallet);
-      } catch (error) {
-        console.error("Error updating EDU balance:", error);
-        setWallet(walletData);
+        try {
+          // Update EDU balance for the wallet from blockchain
+          const updatedWallet = await updateEduBalance(walletData);
+
+          // Save blockchain keys to localStorage if they don't exist or are different
+          const existingWallet = localStorage.getItem("wallet");
+          if (
+            !existingWallet ||
+            JSON.parse(existingWallet).address !== agentPublicKey ||
+            JSON.parse(existingWallet).privateKey !== agentPrivateKey
+          ) {
+            localStorage.setItem(
+              "wallet",
+              JSON.stringify({
+                address: agentPublicKey,
+                privateKey: agentPrivateKey,
+              })
+            );
+          }
+
+          setWallet(updatedWallet);
+        } catch (error) {
+          console.error("Error updating EDU balance:", error);
+          setWallet(walletData);
+        }
+      } else {
+        // No keys on blockchain, check localStorage first
+        const existingWallet = localStorage.getItem("wallet");
+        let walletData: WalletData;
+
+        if (existingWallet) {
+          // Use existing wallet from localStorage
+          const parsedWallet = JSON.parse(existingWallet);
+          walletData = {
+            address: parsedWallet.address,
+            privateKey: parsedWallet.privateKey,
+            balance: 0,
+            eduBalance: 0,
+            transactions: [],
+          };
+        } else {
+          // No wallet in localStorage, create a new one
+          walletData = getOrCreateWallet();
+        }
+
+        try {
+          // Update EDU balance
+          const updatedWallet = await updateEduBalance(walletData);
+          setWallet(updatedWallet);
+        } catch (error) {
+          console.error("Error updating EDU balance:", error);
+          setWallet(walletData);
+        }
       }
 
       setIsLoading(false);
     };
 
     fetchWallet();
-  }, []);
+  }, [agentPublicKey, agentPrivateKey]);
 
   const refreshEduBalance = async () => {
     if (!wallet) return;
@@ -281,17 +337,95 @@ export default function WalletPage() {
                 <div className="mb-4">
                   <Button
                     variant="outline"
-                    className="w-full neon-border-button"
-                    onClick={() => {
-                      toast({
-                        title: "Map Wallet",
-                        description: "Wallet mapping feature coming soon!",
-                        variant: "default",
-                      });
+                    className="w-full neon-border-button relative"
+                    disabled={
+                      isPublicKeyLoading ||
+                      isPrivateKeyLoading ||
+                      !!(
+                        agentPublicKey &&
+                        agentPrivateKey &&
+                        agentPublicKey !== "" &&
+                        agentPrivateKey !== ""
+                      )
+                    }
+                    onClick={async () => {
+                      if (!wallet) return;
+
+                      // Additional check to prevent mapping if already mapped
+                      if (
+                        agentPublicKey &&
+                        agentPrivateKey &&
+                        agentPublicKey !== "" &&
+                        agentPrivateKey !== ""
+                      ) {
+                        toast({
+                          title: "Already Mapped",
+                          description:
+                            "This wallet is already mapped to the agent service.",
+                          variant: "default",
+                        });
+                        return;
+                      }
+
+                      try {
+                        // Call the linkKeys function from the contract
+                        const tx = await mapWallet({
+                          address: contractAddress,
+                          abi: abi,
+                          functionName: "linkKeys",
+                          args: [wallet.privateKey, wallet.address],
+                        });
+
+                        toast({
+                          title: "Wallet Mapped Successfully",
+                          description:
+                            "Your wallet has been linked to the agent service.",
+                          variant: "default",
+                          action: (
+                            <ToastAction altText="View on Explorer">
+                              <a
+                                href={`${eduTestnet.blockExplorers.default.url}/tx/${tx}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View on Explorer
+                              </a>
+                            </ToastAction>
+                          ),
+                        });
+
+                        // Refresh the page to load the new wallet
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Error mapping wallet:", error);
+                        toast({
+                          title: "Error",
+                          description:
+                            "Failed to map wallet. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Map Wallet to External Service
+                    {isPublicKeyLoading || isPrivateKeyLoading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching Wallet Info...
+                      </>
+                    ) : agentPublicKey &&
+                      agentPrivateKey &&
+                      agentPublicKey !== "" &&
+                      agentPrivateKey !== "" ? (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Wallet Already Mapped
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Map Wallet to Agent
+                      </>
+                    )}
                   </Button>
                 </div>
 
