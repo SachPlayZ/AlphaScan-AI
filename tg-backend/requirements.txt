@@ -1,5 +1,5 @@
 cryptography
-cryptography.egg
+eth_account
 fastapi
 groq
 langsmith
@@ -9,3 +9,4 @@ pydantic_core
 python-dotenv
 Telethon
 uvicorn
+web3
