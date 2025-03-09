@@ -3,21 +3,31 @@ import json
 import os
 import asyncio
 import random
-from fastapi import FastAPI, HTTPException, Depends, Request    
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
 from langsmith import expect
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from telethon import TelegramClient, events, functions
 from telethon.sessions import StringSession
-from typing import Dict, List, Any, Tuple   
+from typing import Dict, List, Any, Tuple
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 from pydantic_core import from_json
+from web3util import edu_balance, token_balance, buy_token, sell_token
 
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
@@ -123,7 +133,7 @@ async def get_user_client(user_id: str) -> TelegramClient:
 async def startup_event():
     """Start message listeners for all existing users on startup"""
     print("Starting application...")
-    
+
     print("Initializing message listeners for existing users...")
     async for user in db[COLLECTION_NAME].find():
         try:
@@ -145,7 +155,9 @@ async def startup_event():
 
         for entry in watch_entries:
             try:
-                print(f"Starting watcher for group {entry['group_name']} (ID: {entry['group_id']})")
+                print(
+                    f"Starting watcher for group {entry['group_name']} (ID: {entry['group_id']})"
+                )
                 await start_group_watcher(
                     entry["user_id"], entry["group_id"], entry.get("topic_id")
                 )
@@ -154,7 +166,7 @@ async def startup_event():
 
     except Exception as e:
         print(f"Error restarting watchers: {str(e)}")
-    
+
     print("Startup process completed")
 
 
@@ -297,7 +309,7 @@ async def get_watched_groups(user_id: str):
     try:
         cursor = db[WATCHED_GROUPS_COLLECTION].find({"user_id": user_id})
         watched_groups = await cursor.to_list(None)
-        
+
         for group in watched_groups:
             group["_id"] = str(group["_id"])
             if "created_at" in group:
@@ -308,11 +320,15 @@ async def get_watched_groups(user_id: str):
     except Exception as e:
         print(f"Error getting watched groups: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 async def get_topic_ids(user_id: str):
     cursor = db[WATCHED_GROUPS_COLLECTION].find({"user_id": user_id})
     watched_groups = await cursor.to_list(None)
-    return [group["topic_id"] if group["topic_id"] is not None else group["group_id"] for group in watched_groups]
+    return [
+        group["topic_id"] if group["topic_id"] is not None else group["group_id"]
+        for group in watched_groups
+    ]
 
 
 @app.delete("/unwatch-group")
@@ -361,8 +377,10 @@ async def start_group_watcher(user_id, group_id, topic_id=None):
 async def watch_group_messages(user_id, group_id, topic_id=None):
     """Background task to watch for messages in a group/channel"""
     try:
-        print(f"Starting watch_group_messages for user {user_id}, group {group_id}, topic {topic_id}")
-        
+        print(
+            f"Starting watch_group_messages for user {user_id}, group {group_id}, topic {topic_id}"
+        )
+
         user = await db[COLLECTION_NAME].find_one({"user_id": user_id})
         if not user:
             print(f"User {user_id} not found for watcher")
@@ -380,10 +398,10 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
 
         print(f"Found watch entry for group {watch_entry['group_name']}")
         print(f"Setting up client for user {user_id} to watch group {group_id}")
-        
+
         session = decrypt_data(user["session_string"])
         print("Decrypted session string")
-        
+
         client = TelegramClient(
             StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
         )
@@ -392,29 +410,39 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
         print("Attempting to connect client...")
         await client.connect()
         print("Client connected")
-        
+
         if not await client.is_user_authorized():
             print(f"User {user_id} not authorized for watcher")
             await client.disconnect()
             return
 
         print(f"Successfully connected client for user {user_id}")
-        print(f"Starting watcher for {watch_entry['group_name']}{f' - {watch_entry['topic_name']}' if topic_id else ''}")
+        print(
+            f"Starting watcher for {watch_entry['group_name']}{f' - {watch_entry['topic_name']}' if topic_id else ''}"
+        )
 
         @client.on(events.NewMessage(chats=group_id))
         async def handler(event):
             print("DEBUG: New message event received!")
             try:
                 if topic_id is not None:
-                    if not hasattr(event.message, "reply_to") or event.message.reply_to is None:
+                    if (
+                        not hasattr(event.message, "reply_to")
+                        or event.message.reply_to is None
+                    ):
                         print("DEBUG: Message has no reply_to attribute or is None")
                         return
-                    if not hasattr(event.message.reply_to, "forum_topic") or not event.message.reply_to.forum_topic:
+                    if (
+                        not hasattr(event.message.reply_to, "forum_topic")
+                        or not event.message.reply_to.forum_topic
+                    ):
                         print("DEBUG: Message is not in a forum topic")
                         return
                     topic_ids = await get_topic_ids(user_id)
                     if event.message.reply_to.reply_to_msg_id not in topic_ids:
-                        print(f"DEBUG: Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match expected {topic_id}")
+                        print(
+                            f"DEBUG: Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match expected {topic_id}"
+                        )
                         return
 
                 topicId = event.message.reply_to.reply_to_msg_id
@@ -424,7 +452,13 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
                 last_name = getattr(sender, "last_name", "") or ""
                 sender_name = f"{first_name} {last_name}"
                 sender_name = sender_name.strip() or sender.username or "Unknown"
-                await process_message(watch_entry['group_name'], watch_entry['topic_name'], sender_name, event.message.text, user_id)
+                await process_message(
+                    watch_entry["group_name"],
+                    watch_entry["topic_name"],
+                    sender_name,
+                    event.message.text,
+                    user_id,
+                )
 
             except Exception as e:
                 print(f"Error in message handler: {str(e)}")
@@ -442,8 +476,12 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
         if "client" in locals() and client.is_connected():
             await client.disconnect()
 
+
 async def get_watch_entry(user_id: str, topic_id: int):
-    return await db[WATCHED_GROUPS_COLLECTION].find_one({"user_id": user_id, "topic_id": topic_id})
+    return await db[WATCHED_GROUPS_COLLECTION].find_one(
+        {"user_id": user_id, "topic_id": topic_id}
+    )
+
 
 @app.get("/get-queue")
 async def get_queue():
@@ -451,18 +489,22 @@ async def get_queue():
     return queue
 
 
-async def process_message(group_name: str, topic_name: str, sender_name: str, message_text: str, user_id: str):
+async def process_message(
+    group_name: str, topic_name: str, sender_name: str, message_text: str, user_id: str
+):
     global queue
 
     queue[topic_name] = queue.get(topic_name, [])
-    queue[topic_name].append({
-        "group_name": group_name,
-        "topic_name": topic_name,
-        "sender_name": sender_name,
-        "message_text": message_text,
-        "user_id": user_id,
-        "overlap": False
-    })
+    queue[topic_name].append(
+        {
+            "group_name": group_name,
+            "topic_name": topic_name,
+            "sender_name": sender_name,
+            "message_text": message_text,
+            "user_id": user_id,
+            "overlap": False,
+        }
+    )
     if len(queue[topic_name]) == 10:
         last_10_messages = queue[topic_name]
         queue[topic_name] = []
@@ -470,7 +512,7 @@ async def process_message(group_name: str, topic_name: str, sender_name: str, me
         for message in overlap_messages:
             message["overlap"] = True
             queue[topic_name].append(message)
-        await analyse_texts(last_10_messages)
+        await analyse_texts(last_10_messages, user_id)
 
 
 def generate(prompt: str):
@@ -494,19 +536,20 @@ def generate(prompt: str):
     return output
 
 
-def get_eth_balance() -> bool:
-    # TODO: Get eth balance
-    return True
+def get_eth_balance(user_id: str) -> bool:
+    balance = edu_balance(user_id)
+    return balance > 0
 
-def get_token_balance(token: str) -> bool:
-    # TODO: Get token balance
-    return True
+
+def get_token_balance(token: str, user_id: str) -> bool:
+    balance = token_balance(user_id, token)
+    return balance > 0
 
 
 async def log_action(action: str, input_data: Any, output_data: Any) -> None:
     """
     Logs an action with its input and output to the database
-    
+
     Args:
         action: The name/type of action being logged
         input_data: The input data for the action
@@ -517,15 +560,15 @@ async def log_action(action: str, input_data: Any, output_data: Any) -> None:
             "timestamp": datetime.utcnow(),
             "action": action,
             "input": input_data,
-            "output": output_data
+            "output": output_data,
         }
-        
+
         await db["logs"].insert_one(log_entry)
     except Exception as e:
         print(f"Error logging action: {str(e)}")
 
 
-async def analyse_texts(queue: List[Dict]) -> Any:
+async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
     tg_alpha = get_alpha(queue)
     await log_action("Get Alpha from Group Texts", queue, tg_alpha)
     if len(tg_alpha) == 0:
@@ -534,14 +577,26 @@ async def analyse_texts(queue: List[Dict]) -> Any:
     for token in tg_alpha:
         await log_action("Analyse Each Alpha", token, "Analyzing alpha")
         if token["sentiment"] == "positive":
-            await log_action("Check ETH Balance [Alpha is positive so we need to buy using ETH]", token, "Checking ETH balance")
-            if not get_eth_balance():
-                await log_action("Check ETH Balance", token, "ETH balance is not enough")
+            await log_action(
+                "Check ETH Balance [Alpha is positive so we need to buy using ETH]",
+                token,
+                "Checking ETH balance",
+            )
+            if not get_eth_balance(user_id):
+                await log_action(
+                    "Check ETH Balance", token, "ETH balance is not enough"
+                )
                 return
         elif token["sentiment"] == "negative":
-            await log_action("Check Token Balance [Alpha is negative so we need to sell the token]", token, "Checking token balance")
-            if not get_token_balance(token["token"]):
-                await log_action("Check Token Balance", token, "Token balance is not enough")
+            await log_action(
+                "Check Token Balance [Alpha is negative so we need to sell the token]",
+                token,
+                "Checking token balance",
+            )
+            if not get_token_balance(token["token"], user_id):
+                await log_action(
+                    "Check Token Balance", token, "Token balance is not enough"
+                )
                 return
         _, sentiment, valid = await validation_layer(token)
         if not valid:
@@ -552,19 +607,82 @@ async def analyse_texts(queue: List[Dict]) -> Any:
             await log_action("Trust Layer Declined", token, "Token is not trusted")
             return
         if abs(pnl_potential) < 10:
-            await log_action("PNL Potential is too low", token, "PNL Potential is too low")
+            await log_action(
+                "PNL Potential is too low", token, "PNL Potential is too low"
+            )
             return
-        await transaction_layer(token)
+        await transaction_layer(token, user_id)
     return
 
 
-def transaction_layer(token: Dict):
-    # TODO: Implement transaction layer
-    pass
+@app.get("/get-logs/{user_id}")
+async def get_logs(user_id: str):
+    logs = await db["logs"].find_one({"user_id": user_id})
+    return logs
+
+
+async def store_token_transaction(user_id: str, token_symbol: str):
+    """
+    Store token transaction history for a user in the database.
+    Updates the user's token history by adding new tokens they interact with.
+
+    Args:
+        user_id: The ID of the user making the transaction
+        token_symbol: The symbol of the token being bought/sold
+    """
+    try:
+        token_history = await db["token_history"].find_one({"user_id": user_id})
+
+        if token_history:
+            if token_symbol not in token_history["tokens"]:
+                await db["token_history"].update_one(
+                    {"user_id": user_id}, {"$push": {"tokens": token_symbol}}
+                )
+        else:
+            await db["token_history"].insert_one(
+                {
+                    "user_id": user_id,
+                    "tokens": [token_symbol],
+                    "created_at": datetime.now(datetime.UTC),
+                }
+            )
+
+    except Exception as e:
+        print(f"Error storing token transaction: {str(e)}")
+
+
+async def get_token_history(user_id: str) -> List[str]:
+    token_history = await db["token_history"].find_one({"user_id": user_id})
+    return token_history["tokens"]
+
+
+@app.get("/get-token-history/{user_id}")
+async def get_token_history_endpoint(user_id: str):
+    tokens = await get_token_history(user_id)
+    res = []
+    for token in tokens:
+        balance = token_balance(user_id, token)
+        res.append({"token": token, "balance": balance})
+    return res
+
+
+async def transaction_layer(token: Dict, user_id: str):
+    await store_token_transaction(user_id, token["token"])
+    if token["sentiment"] == "positive":
+        balance = edu_balance(user_id)
+        if balance > 0:
+            tx = buy_token(user_id, token["token"], balance * 0.6)
+            await log_action(f"Buy Token {token['token']}", token, tx)
+    elif token["sentiment"] == "negative":
+        balance = token_balance(user_id, token["token"])
+        if balance > 0:
+            tx = sell_token(user_id, token["token"], balance)
+            await log_action(f"Sell Token {token['token']}", token, tx)
+
 
 def detect_trend(data):
     trends = {}
-    
+
     for key, values in data.items():
         if all(values[i] >= values[i + 1] for i in range(len(values) - 1)):
             trends[key] = "negative"
@@ -574,36 +692,51 @@ def detect_trend(data):
             trends[key] = "mixed"
     return trends
 
-def generate_market_data(trend="rising", days=10, start_price=random.uniform(1, 100), start_volume=random.uniform(1e3, 1e6)):
+
+def generate_market_data(
+    trend="rising",
+    days=10,
+    start_price=random.uniform(1, 100),
+    start_volume=random.uniform(1e3, 1e6),
+):
     prices, market_caps, total_volumes = [], [], []
-    
+
     prices.append(start_price)
     total_volumes.append(start_volume)
     market_caps.append(start_price * start_volume)
-    
+
     for _ in range(days - 1):
         if trend == "rising":
             price_change = random.uniform(0.5, 2.0)
             volume_change = random.uniform(1e3, 5e3)
         elif trend == "falling":
-            price_change = random.uniform(-2.0, -0.5) 
+            price_change = random.uniform(-2.0, -0.5)
             volume_change = random.uniform(-5e3, -1e3)
-        else: 
+        else:
             price_change = random.uniform(-1.5, 1.5)
             volume_change = random.uniform(-3e3, 3e3)
-        
+
         new_price = max(1, prices[-1] + price_change)
         new_volume = max(1e3, total_volumes[-1] + volume_change)
         new_market_cap = new_price * new_volume
-        
+
         prices.append(new_price)
         total_volumes.append(new_volume)
         market_caps.append(new_market_cap)
-    
-    return {"prices": prices, "market_caps": market_caps, "total_volumes": total_volumes}
+
+    return {
+        "prices": prices,
+        "market_caps": market_caps,
+        "total_volumes": total_volumes,
+    }
+
 
 def get_historical_data(token: Dict) -> Dict:
-    good_bad = "rising" if random.random() < (0.9 if token["sentiment"] == "positive" else 0.1) else "falling"
+    good_bad = (
+        "rising"
+        if random.random() < (0.9 if token["sentiment"] == "positive" else 0.1)
+        else "falling"
+    )
     return generate_market_data(good_bad)
 
 
@@ -611,19 +744,21 @@ def get_pnl_potential(data: Dict):
     prices = data.get("prices", [])
     market_caps = data.get("market_caps", [])
     volumes = data.get("total_volumes", [])
-    
+
     if not prices or not market_caps or not volumes:
         return 0
-    
+
     initial_price = prices[0]
     final_price = prices[-1]
-    price_change = (final_price - initial_price) / initial_price * 100          
-    
+    price_change = (final_price - initial_price) / initial_price * 100
+
     avg_market_cap = sum(market_caps) / len(market_caps)
     avg_volume = sum(volumes) / len(volumes)
-    
-    profit_or_loss_potential = price_change * (avg_market_cap / max(market_caps)) * (avg_volume / max(volumes))
-    
+
+    profit_or_loss_potential = (
+        price_change * (avg_market_cap / max(market_caps)) * (avg_volume / max(volumes))
+    )
+
     return profit_or_loss_potential
 
 
@@ -633,27 +768,32 @@ async def trust_layer(sentiment: str, token: Dict) -> Tuple[bool, float]:
     trends = detect_trend(historical_data)
     await log_action("Detect Trends", token, trends)
     if not trends["prices"] == "positive" and sentiment == "positive":
-        await log_action("Sentiment and Trends do not match", {
-            "token": token,
-            "sentiment": sentiment,
-            "trends": trends
-        }, "Sentiment and Trends do not match")
+        await log_action(
+            "Sentiment and Trends do not match",
+            {"token": token, "sentiment": sentiment, "trends": trends},
+            "Sentiment and Trends do not match",
+        )
         return False
     if not trends["prices"] == "negative" and sentiment == "negative":
-        await log_action("Sentiment and Trends do not match", {
-            "token": token,
-            "sentiment": sentiment,
-            "trends": trends
-        }, "Sentiment and Trends do not match")
+        await log_action(
+            "Sentiment and Trends do not match",
+            {"token": token, "sentiment": sentiment, "trends": trends},
+            "Sentiment and Trends do not match",
+        )
         return False
-    
+
     pnl_potential = get_pnl_potential(historical_data)
     await log_action("Get PNL Potential", token, pnl_potential)
-    
+
     return True, pnl_potential
 
+
 def get_tweets(token: Dict) -> List[Dict]:
-    good_bad = "good" if random.random() < (0.7 if token["sentiment"] == "positive" else 0.3) else "bad"
+    good_bad = (
+        "good"
+        if random.random() < (0.7 if token["sentiment"] == "positive" else 0.3)
+        else "bad"
+    )
     prompt = f"""You are an expert crypto token tweet generator. You are given a token name and you need to generate 10 tweets about the token. Sentiment of the tweets should be {good_bad}.
     The tweets should be short and to the point, max 280 characters each.
     The tweets should be engaging and interesting, and not be promotional.
@@ -715,6 +855,7 @@ async def validation_layer(alpha: Dict) -> Tuple[List[str], Dict, bool]:
     await log_action("Validation Layer", alpha, "Sentiment matches")
     return tweets, sentiment, True
 
+
 def get_alpha(queue: List[Dict]):
     prompt = f"""You are an expect cryptocurrency analyst with deep knowledge of tokens, DeFi protocols, and market trends. Analyze the following group chat messages and:
 
@@ -751,7 +892,6 @@ Messages to analyze: {queue}"""
     return from_json(response, allow_inf_nan=True, allow_partial=True)
 
 
-
 @app.get("/user-groups/{user_id}")
 async def get_user_groups(user_id: str):
     try:
@@ -776,12 +916,12 @@ async def get_user_groups(user_id: str):
             channels = []
             dialog_dict = {}
             for key, value in dialogs[0].__dict__.items():
-                if hasattr(value, '__dict__'):
+                if hasattr(value, "__dict__"):
                     nested_dict = {}
                     for k, v in value.__dict__.items():
                         if isinstance(v, StringSession):
                             continue
-                        elif hasattr(v, '__dict__'):
+                        elif hasattr(v, "__dict__"):
                             nested_dict[k] = str(v)
                         elif isinstance(v, datetime):
                             nested_dict[k] = v.isoformat()
@@ -794,7 +934,7 @@ async def get_user_groups(user_id: str):
                     continue
                 else:
                     dialog_dict[key] = str(value)
-            
+
             print(json.dumps(dialog_dict, indent=4))
             for dialog in dialogs:
                 group_info = {
