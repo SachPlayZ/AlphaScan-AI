@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/navbar";
+import { useAccount } from "wagmi";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ const countryCodes = [
 ];
 
 export default function LoginPage() {
+  const { address } = useAccount();
   const router = useRouter();
   const [countryCode, setCountryCode] = useState("+1");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -71,10 +73,20 @@ export default function LoginPage() {
     try {
       // Here you would typically send the phone number to your backend
       console.log("Phone number submitted:", countryCode + phoneNumber);
+      const response = await fetch("http://0.0.0.0:8000/init", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: countryCode + phoneNumber,
+          user_id: address,
+        }),
+      });
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
+      const data = await response.json();
+      console.log("Response:", data);
       // Show OTP verification screen
       setShowOtpVerification(true);
       setIsSubmitting(false);
@@ -118,7 +130,20 @@ export default function LoginPage() {
       console.log("Verifying OTP:", otpValue);
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("http://0.0.0.0:8000/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp_code: otpValue,
+          user_id: address,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Response:", data);
 
       // Redirect to group selection page on successful verification
       router.push("/select-group");
