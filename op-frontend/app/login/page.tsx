@@ -73,7 +73,7 @@ export default function LoginPage() {
     try {
       // Here you would typically send the phone number to your backend
       console.log("Phone number submitted:", countryCode + phoneNumber);
-      const response = await fetch("http://0.0.0.0:8000/init", {
+      const response = await fetch("http://localhost:8000/init", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
       // Simulate API call
       // await new Promise((resolve) => setTimeout(resolve, 1500));
-      const response = await fetch("http://0.0.0.0:8000/verify", {
+      const response = await fetch("http://localhost:8000/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

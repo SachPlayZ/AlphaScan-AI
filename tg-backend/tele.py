@@ -1,12 +1,10 @@
-from datetime import datetime
-import json
+from datetime import datetime, UTC
 import os
 import asyncio
 import random
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
-from langsmith import expect
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from telethon import TelegramClient, events, functions
@@ -505,7 +503,8 @@ async def process_message(
             "overlap": False,
         }
     )
-    if len(queue[topic_name]) == 10:
+    print("Message received:", message_text)
+    if len(queue[topic_name]) == 4:
         last_10_messages = queue[topic_name]
         queue[topic_name] = []
         overlap_messages = last_10_messages[-3:]
@@ -516,37 +515,46 @@ async def process_message(
 
 
 def generate(prompt: str):
-    client = Groq(
-        api_key=os.getenv("GROQ_API_KEY"),
-    )
-    response = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        model=os.getenv("GROQ_MODEL"),
-        stream=False,
-    )
-    print("AI Response: ", response)
-    output = response.choices[0].message.content
-    print("Output: ", output)
-    output = output.split("</think>")[1]
-    return output
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            client = Groq(
+                api_key=os.getenv("GROQ_API_KEY"),
+            )
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model=os.getenv("GROQ_MODEL"),
+                stream=False,
+            )
+            output = response.choices[0].message.content
+            output = output.split("</think>")[1]
+            return output
+            
+        except Exception as e:
+            retry_count += 1
+            if retry_count == max_retries:
+                raise Exception(f"Failed after {max_retries} retries: {str(e)}")
+            print(f"Attempt {retry_count} failed, retrying...")
 
 
 def get_eth_balance(user_id: str) -> bool:
-    balance = edu_balance(user_id)
+    balance = edu_balance(user_id)["edu_balance"]
     return balance > 0
 
 
 def get_token_balance(token: str, user_id: str) -> bool:
-    balance = token_balance(user_id, token)
+    balance = token_balance(user_id, token)["token_balance"]
     return balance > 0
 
 
-async def log_action(action: str, input_data: Any, output_data: Any) -> None:
+async def log_action(action: str, input_data: Any, output_data: Any, user_id: str) -> None:
     """
     Logs an action with its input and output to the database
 
@@ -557,10 +565,11 @@ async def log_action(action: str, input_data: Any, output_data: Any) -> None:
     """
     try:
         log_entry = {
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
             "action": action,
             "input": input_data,
             "output": output_data,
+            "user_id": user_id
         }
 
         await db["logs"].insert_one(log_entry)
@@ -569,22 +578,24 @@ async def log_action(action: str, input_data: Any, output_data: Any) -> None:
 
 
 async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
+    print("Analyzing texts")
     tg_alpha = get_alpha(queue)
-    await log_action("Get Alpha from Group Texts", queue, tg_alpha)
+    await log_action("Get Alpha from Group Texts", queue, tg_alpha, user_id)
     if len(tg_alpha) == 0:
-        await log_action("Analyse Texts", tg_alpha, "No tokens detected")
+        await log_action("Analyse Texts", tg_alpha, "No token alphas detected", user_id)
         return
     for token in tg_alpha:
-        await log_action("Analyse Each Alpha", token, "Analyzing alpha")
+        await log_action("Analyse Each Alpha", token, "Analyzing alpha", user_id)
         if token["sentiment"] == "positive":
             await log_action(
-                "Check ETH Balance [Alpha is positive so we need to buy using ETH]",
+                "Check EDU Balance [Alpha is positive so we need to buy using EDU]",
                 token,
-                "Checking ETH balance",
+                "Checking EDU balance",
+                user_id
             )
             if not get_eth_balance(user_id):
                 await log_action(
-                    "Check ETH Balance", token, "ETH balance is not enough"
+                    "Check EDU Balance", token, "EDU balance is zero", user_id
                 )
                 return
         elif token["sentiment"] == "negative":
@@ -592,23 +603,37 @@ async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
                 "Check Token Balance [Alpha is negative so we need to sell the token]",
                 token,
                 "Checking token balance",
+                user_id
+
             )
             if not get_token_balance(token["token"], user_id):
                 await log_action(
-                    "Check Token Balance", token, "Token balance is not enough"
+                    "Check Token Balance", token, "Token balance is zero", user_id
                 )
                 return
-        _, sentiment, valid = await validation_layer(token)
+        _, sentiment, valid = await validation_layer(token, user_id)
         if not valid:
-            await log_action("Validation Layer Declined", token, "Token is not valid")
+            await log_action("Validation Layer Declined", token, {
+                "reason": "Token is not valid",
+                "sentiment": sentiment,
+                "validity": valid,
+            }, user_id)
             return
-        trust, pnl_potential = trust_layer(sentiment, token)
+        trust, pnl_potential = await trust_layer(sentiment, token, user_id)
         if not trust:
-            await log_action("Trust Layer Declined", token, "Token is not trusted")
+            await log_action("Trust Layer Declined", {
+                "token": token,
+                "sentiment": sentiment
+            }, {
+                "reason": "Token is not trusted",
+                "trust": trust,
+                "pnl_potential": pnl_potential,
+            },
+            user_id)
             return
         if abs(pnl_potential) < 10:
             await log_action(
-                "PNL Potential is too low", token, "PNL Potential is too low"
+                "PNL Potential is too low", pnl_potential, "PNL Potential is too low", user_id
             )
             return
         await transaction_layer(token, user_id)
@@ -617,8 +642,17 @@ async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
 
 @app.get("/get-logs/{user_id}")
 async def get_logs(user_id: str):
-    logs = await db["logs"].find_one({"user_id": user_id})
-    return logs
+    cursor = db["logs"].find({"user_id": user_id})
+    logs = await cursor.to_list(length=None)
+    # Convert ObjectId to string and clean up non-serializable objects
+    cleaned_logs = []
+    for log in logs:
+        log['_id'] = str(log['_id'])  # Convert ObjectId to string
+        # Convert timestamp to ISO format string if it exists
+        if 'timestamp' in log:
+            log['timestamp'] = log['timestamp'].isoformat()
+        cleaned_logs.append(log)
+    return cleaned_logs
 
 
 async def store_token_transaction(user_id: str, token_symbol: str):
@@ -643,7 +677,7 @@ async def store_token_transaction(user_id: str, token_symbol: str):
                 {
                     "user_id": user_id,
                     "tokens": [token_symbol],
-                    "created_at": datetime.now(datetime.UTC),
+                    "created_at": datetime.now(UTC),
                 }
             )
 
@@ -669,15 +703,15 @@ async def get_token_history_endpoint(user_id: str):
 async def transaction_layer(token: Dict, user_id: str):
     await store_token_transaction(user_id, token["token"])
     if token["sentiment"] == "positive":
-        balance = edu_balance(user_id)
+        balance = edu_balance(user_id)["edu_balance"]
         if balance > 0:
             tx = buy_token(user_id, token["token"], balance * 0.6)
-            await log_action(f"Buy Token {token['token']}", token, tx)
+            await log_action(f"Buy Token {token['token']}", token, tx, user_id)
     elif token["sentiment"] == "negative":
-        balance = token_balance(user_id, token["token"])
+        balance = token_balance(user_id, token["token"])["token_balance"]
         if balance > 0:
             tx = sell_token(user_id, token["token"], balance)
-            await log_action(f"Sell Token {token['token']}", token, tx)
+            await log_action(f"Sell Token {token['token']}", token, tx, user_id)
 
 
 def detect_trend(data):
@@ -762,28 +796,33 @@ def get_pnl_potential(data: Dict):
     return profit_or_loss_potential
 
 
-async def trust_layer(sentiment: str, token: Dict) -> Tuple[bool, float]:
+async def trust_layer(sentiment: str, token: Dict, user_id: str) -> Tuple[bool, float]:
     historical_data = get_historical_data(token)
-    await log_action("Get Historical Data", token, historical_data)
+    await log_action("Get Historical Data", token, historical_data, user_id)
     trends = detect_trend(historical_data)
-    await log_action("Detect Trends", token, trends)
+    await log_action("Detect Trends", token, trends, user_id)
     if not trends["prices"] == "positive" and sentiment == "positive":
         await log_action(
             "Sentiment and Trends do not match",
             {"token": token, "sentiment": sentiment, "trends": trends},
             "Sentiment and Trends do not match",
+            user_id
         )
-        return False
+        return False, 0
     if not trends["prices"] == "negative" and sentiment == "negative":
         await log_action(
             "Sentiment and Trends do not match",
             {"token": token, "sentiment": sentiment, "trends": trends},
             "Sentiment and Trends do not match",
+            user_id
         )
-        return False
+        return False, 0
 
     pnl_potential = get_pnl_potential(historical_data)
-    await log_action("Get PNL Potential", token, pnl_potential)
+    await log_action("Get PNL Potential", {
+        "token": token,
+        "historical_data": historical_data,
+    }, pnl_potential, user_id)
 
     return True, pnl_potential
 
@@ -791,7 +830,7 @@ async def trust_layer(sentiment: str, token: Dict) -> Tuple[bool, float]:
 def get_tweets(token: Dict) -> List[Dict]:
     good_bad = (
         "good"
-        if random.random() < (0.7 if token["sentiment"] == "positive" else 0.3)
+        if random.random() < (0.8 if token["sentiment"] == "positive" else 0.2)
         else "bad"
     )
     prompt = f"""You are an expert crypto token tweet generator. You are given a token name and you need to generate 10 tweets about the token. Sentiment of the tweets should be {good_bad}.
@@ -844,15 +883,26 @@ def analyse_tweets(tweets: List[str], token: str) -> Dict:
     return from_json(response, allow_inf_nan=True, allow_partial=True)
 
 
-async def validation_layer(alpha: Dict) -> Tuple[List[str], Dict, bool]:
+async def validation_layer(alpha: Dict, user_id: str) -> Tuple[List[str], Dict, bool]:
     tweets = get_tweets(alpha)
-    await log_action("Get Tweets", alpha, tweets)
+    await log_action("Get Tweets", alpha, tweets, user_id)
     sentiment = analyse_tweets(tweets, alpha["token"])["sentiment"]
-    await log_action("Analyse Tweets", alpha, sentiment)
+    await log_action("Analyse Tweets", {
+        "token": alpha["token"],
+        "tweets": tweets,
+    }, sentiment, user_id)
     if not sentiment == alpha["sentiment"]:
-        await log_action("Validation Layer", alpha, "Sentiment does not match")
+        await log_action("Validation Layer", {
+            "sentiment": sentiment,
+            "expected_sentiment": alpha["sentiment"],
+        }, "Sentiment does not match", user_id)
         return tweets, sentiment, False
-    await log_action("Validation Layer", alpha, "Sentiment matches")
+    await log_action("Validation Layer Passed", {
+        "token": alpha["token"],
+        "tweets": tweets,
+        "sentiment": sentiment,
+        "expected_sentiment": alpha["sentiment"],
+    }, "Sentiment matches", user_id)
     return tweets, sentiment, True
 
 
@@ -935,8 +985,11 @@ async def get_user_groups(user_id: str):
                 else:
                     dialog_dict[key] = str(value)
 
-            print(json.dumps(dialog_dict, indent=4))
             for dialog in dialogs:
+                if getattr(
+                        dialog.entity, "participants_count", None
+                    ) is None or getattr(dialog.entity, "participants_count", None) < 1:
+                    continue
                 group_info = {
                     "id": getattr(dialog.entity, "id", None),
                     "title": dialog.title,
@@ -976,8 +1029,6 @@ async def get_user_groups(user_id: str):
                         group["topics"] = []
 
                         for topic in topics.topics:
-                            if getattr(entity, "title", None) == "HyperDrive Community":
-                                print(topic.__dict__)
                             group["topics"].append(
                                 {
                                     "id": topic.id,
@@ -1001,9 +1052,9 @@ async def get_user_groups(user_id: str):
                     group["topics_error"] = str(e)
 
             return {
-                "regular_groups": regular_groups,
-                "supergroups": super_groups,
-                "channels": channels,
+                "regular_groups": regular_groups if len(regular_groups) > 0 else [],
+                "supergroups": super_groups if len(super_groups) > 0 else [],
+                "channels": channels if len(channels) > 0 else [],
             }
 
         finally:

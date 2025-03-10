@@ -139,17 +139,6 @@ contract DealToken is ERC20, Ownable {
     }
 
     /**
-     * @dev Withdraw ETH from the contract (owner only)
-     */
-    function withdrawETH() external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No ETH to withdraw");
-
-        (bool success, ) = payable(owner()).call{value: balance}("");
-        require(success, "ETH transfer failed");
-    }
-
-    /**
      * @dev Update base price (owner only)
      */
     function updateBasePrice(uint256 _newBasePrice) external onlyOwner {

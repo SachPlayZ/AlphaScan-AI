@@ -44,6 +44,7 @@ def get_abi(ticker: str):
 
 
 def token_balance(address: str, token_ticker: str):
+    token_ticker = token_ticker.upper()
     private_key = os.getenv("PRIVATE_KEY")
     if not private_key:
         raise ValueError("Private key not found in environment variables")
@@ -91,6 +92,7 @@ def token_balance(address: str, token_ticker: str):
 
 
 def buy_token(address: str, token_ticker: str, amount_in_eth: float):
+    token_ticker = token_ticker.upper()
     private_key = os.getenv("PRIVATE_KEY")
     if not private_key:
         raise ValueError("Private key not found in environment variables")
@@ -164,6 +166,7 @@ def buy_token(address: str, token_ticker: str, amount_in_eth: float):
 
 
 def sell_token(address: str, token_ticker: str, amount_in_tokens: float):
+    token_ticker = token_ticker.upper()
     private_key = os.getenv("PRIVATE_KEY")
     if not private_key:
         raise ValueError("Private key not found in environment variables")
@@ -248,7 +251,8 @@ def sell_token(address: str, token_ticker: str, amount_in_tokens: float):
     }
 
 
-# print(buy_token("0x2F8110491E604ADCBdF50F5f100CDd46FFbeb344", "DEAL", 0.0001))
+# print(buy_token("0x2F8110491E604ADCBdF50F5f100CDd46FFbeb344", "DEAL", 0.001))
+# print(buy_token("0x2F8110491E604ADCBdF50F5f100CDd46FFbeb344", "ALT", 0.001))
 # bal = token_balance("0x2F8110491E604ADCBdF50F5f100CDd46FFbeb344", "DEAL")
 # print(bal)
 # print(sell_token("0x2F8110491E604ADCBdF50F5f100CDd46FFbeb344", "DEAL", bal['token_balance']))

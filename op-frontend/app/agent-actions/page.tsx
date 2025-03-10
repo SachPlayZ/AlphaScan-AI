@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Trash,
   RefreshCcw,
+  Copy,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import {
@@ -36,169 +37,71 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { useAccount } from "wagmi";
 
-// Mock data for agent actions
 interface AgentAction {
-  id: string;
-  timestamp: number;
-  type: "analysis" | "decision" | "transaction" | "communication";
-  status: "completed" | "pending" | "failed";
-  title: string;
-  description: string;
-  details: string[];
-  sources?: string[];
-  relatedAssets?: string[];
+  timestamp: Date;
+  action: string;
+  input: any;
+  output: any;
 }
 
-const mockAgentActions: AgentAction[] = [
-  {
-    id: "action-1",
-    timestamp: Date.now() - 1000 * 60 * 30, // 30 minutes ago
-    type: "analysis",
-    status: "completed",
-    title: "Bitcoin Market Analysis",
-    description: "Analyzed Bitcoin price movements and on-chain metrics",
-    details: [
-      "Reviewed 24h price action showing 3.2% increase",
-      "Analyzed on-chain metrics indicating accumulation by whales",
-      "Detected positive sentiment in social media discussions",
-      "Identified potential resistance level at $45,500",
-    ],
-    sources: ["CoinMarketCap", "Glassnode", "Twitter", "TradingView"],
-    relatedAssets: ["BTC"],
-  },
-  {
-    id: "action-2",
-    timestamp: Date.now() - 1000 * 60 * 25, // 25 minutes ago
-    type: "communication",
-    status: "completed",
-    title: "Telegram Channel Monitoring",
-    description: "Monitored crypto signal channels for trading opportunities",
-    details: [
-      "Scanned 15 premium signal channels",
-      "Identified 3 potential trading opportunities",
-      "Cross-referenced signals with technical analysis",
-      "Filtered out 2 signals with insufficient confirmation",
-    ],
-    sources: ["Telegram", "Discord"],
-    relatedAssets: ["ETH", "SOL", "AVAX"],
-  },
-  {
-    id: "action-3",
-    timestamp: Date.now() - 1000 * 60 * 20, // 20 minutes ago
-    type: "analysis",
-    status: "completed",
-    title: "Twitter Sentiment Analysis",
-    description: "Analyzed crypto sentiment on Twitter for the past 24 hours",
-    details: [
-      "Processed 5,000+ tweets from influential crypto accounts",
-      "Sentiment analysis shows 68% positive, 22% neutral, 10% negative",
-      "Detected increasing mentions of Solana ecosystem",
-      "Identified potential FUD campaign against Ethereum",
-    ],
-    sources: ["Twitter", "Sentiment API"],
-    relatedAssets: ["BTC", "ETH", "SOL"],
-  },
-  {
-    id: "action-4",
-    timestamp: Date.now() - 1000 * 60 * 15, // 15 minutes ago
-    type: "decision",
-    status: "completed",
-    title: "Portfolio Allocation Decision",
-    description:
-      "Evaluated current market conditions and decided on allocation changes",
-    details: [
-      "Reviewed current portfolio allocation and performance",
-      "Analyzed market trends and sentiment across major assets",
-      "Considered risk factors and volatility metrics",
-      "Decided to increase Bitcoin allocation by 5% and decrease Ethereum by 5%",
-    ],
-    relatedAssets: ["BTC", "ETH"],
-  },
-  {
-    id: "action-5",
-    timestamp: Date.now() - 1000 * 60 * 10, // 10 minutes ago
-    type: "transaction",
-    status: "completed",
-    title: "Sell Ethereum",
-    description:
-      "Executed sell order for Ethereum based on allocation decision",
-    details: [
-      "Sold 0.3 ETH at $2,650 per ETH",
-      "Total transaction value: $795",
-      "Transaction fee: $2.15",
-      "Transaction hash: 0x3a8e...7f2d",
-    ],
-    relatedAssets: ["ETH"],
-  },
-  {
-    id: "action-6",
-    timestamp: Date.now() - 1000 * 60 * 5, // 5 minutes ago
-    type: "transaction",
-    status: "completed",
-    title: "Buy Bitcoin",
-    description: "Executed buy order for Bitcoin based on allocation decision",
-    details: [
-      "Bought 0.018 BTC at $44,500 per BTC",
-      "Total transaction value: $801",
-      "Transaction fee: $1.85",
-      "Transaction hash: 0x7d2c...9e4f",
-    ],
-    relatedAssets: ["BTC"],
-  },
-  {
-    id: "action-7",
-    timestamp: Date.now() - 1000 * 60 * 2, // 2 minutes ago
-    type: "analysis",
-    status: "pending",
-    title: "Solana Ecosystem Research",
-    description: "Researching new projects in the Solana ecosystem",
-    details: [
-      "Analyzing TVL trends across Solana DeFi protocols",
-      "Reviewing new project launches and token metrics",
-      "Evaluating developer activity and GitHub commits",
-      "Assessing community growth and social engagement",
-    ],
-    relatedAssets: ["SOL"],
-  },
-];
-
 export default function AgentActionsPage() {
+  const { address } = useAccount();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [agentActions, setAgentActions] = useState<AgentAction[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading agent actions
-    setTimeout(() => {
-      setAgentActions(mockAgentActions);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    if (!address) return;
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/get-logs/${address}`); // Replace with actual user ID
+        if (!response.ok) {
+          throw new Error("Failed to fetch logs");
+        }
+        const data = await response.json();
+        console.log(data);
+        
+        // Transform the logs into the correct format
+        const transformedLogs = data.map((log: any) => ({
+          timestamp: new Date(log.timestamp),
+          action: log.action,
+          input: log.input,
+          output: log.output
+        }));
+        
+        setAgentActions(transformedLogs);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch logs");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, [address]);
 
   const filteredActions = agentActions.filter((action) => {
     // Apply search filter
     const matchesSearch =
       searchQuery === "" ||
-      action.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      action.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      action.details.some((detail) =>
-        detail.toLowerCase().includes(searchQuery.toLowerCase())
-      ) ||
-      (action.relatedAssets &&
-        action.relatedAssets.some((asset) =>
-          asset.toLowerCase().includes(searchQuery.toLowerCase())
-        ));
+      action.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      JSON.stringify(action.input).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      JSON.stringify(action.output).toLowerCase().includes(searchQuery.toLowerCase());
 
     // Apply type filter
-    const matchesType = filterType === "all" || action.type === filterType;
+    const matchesType = filterType === "all" || action.action === filterType;
 
     // Apply status filter
     const matchesStatus =
-      filterStatus === "all" || action.status === filterStatus;
+      filterStatus === "all" || 
+      (action.output && action.output.status && action.output.status === filterStatus);
 
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -206,12 +109,13 @@ export default function AgentActionsPage() {
   // Sort actions by timestamp
   const sortedActions = [...filteredActions].sort((a, b) => {
     return sortOrder === "desc"
-      ? b.timestamp - a.timestamp
-      : a.timestamp - b.timestamp;
+      ? b.timestamp.getTime() - a.timestamp.getTime()
+      : a.timestamp.getTime() - b.timestamp.getTime();
   });
 
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const formatTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - timestamp.getTime() - (5.5 * 60 * 60 * 1000)) / 1000);
 
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
@@ -219,30 +123,60 @@ export default function AgentActionsPage() {
     return `${Math.floor(seconds / 86400)}d ago`;
   };
 
-  const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+  const formatDateTime = (timestamp: Date) => {
+    // Convert UTC to IST by adding 5 hours and 30 minutes
+    const istDate = new Date(timestamp.getTime() + (5.5 * 60 * 60 * 1000));
+    
+    return istDate.toLocaleString('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }) + ' IST';
   };
 
   const getActionTypeIcon = (type: string) => {
     switch (type) {
-      case "analysis":
-        return <BarChart className="h-4 w-4" />;
-      case "decision":
-        return <CheckCircle className="h-4 w-4" />;
-      case "transaction":
-        return <ShoppingCart className="h-4 w-4" />;
-      case "communication":
+      case "Get Alpha from Group Texts":
         return <MessageSquare className="h-4 w-4" />;
+      case "Analyse Texts":
+        return <BarChart className="h-4 w-4" />;
+      case "Analyse Each Alpha":
+        return <BarChart className="h-4 w-4" />;
+      case "Check EDU Balance":
+        return <ShoppingCart className="h-4 w-4" />;
+      case "Check Token Balance":
+        return <ShoppingCart className="h-4 w-4" />;
+      case "Validation Layer":
+        return <CheckCircle className="h-4 w-4" />;
+      case "Trust Layer":
+        return <CheckCircle className="h-4 w-4" />;
+      case "Get Historical Data":
+        return <BarChart className="h-4 w-4" />;
+      case "Detect Trends":
+        return <BarChart className="h-4 w-4" />;
+      case "Get PNL Potential":
+        return <BarChart className="h-4 w-4" />;
+      case "Get Tweets":
+        return <Twitter className="h-4 w-4" />;
+      case "Analyse Tweets":
+        return <Twitter className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }
   };
 
-  const getActionStatusIcon = (status: string) => {
+  const getActionStatusIcon = (status: string | undefined) => {
+    if (!status) return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    
     switch (status) {
-      case "completed":
+      case "success":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "pending":
+      case "in_progress":
         return <Clock className="h-4 w-4 text-yellow-500" />;
       case "failed":
         return <XCircle className="h-4 w-4 text-red-500" />;
@@ -253,17 +187,39 @@ export default function AgentActionsPage() {
 
   const getActionTypeColor = (type: string) => {
     switch (type) {
-      case "analysis":
+      case "Get Alpha from Group Texts":
         return "bg-blue-500/20 text-blue-500";
-      case "decision":
+      case "Analyse Texts":
         return "bg-purple-500/20 text-purple-500";
-      case "transaction":
+      case "Analyse Each Alpha":
+        return "bg-purple-500/20 text-purple-500";
+      case "Check EDU Balance":
         return "bg-green-500/20 text-green-500";
-      case "communication":
+      case "Check Token Balance":
+        return "bg-green-500/20 text-green-500";
+      case "Validation Layer":
         return "bg-yellow-500/20 text-yellow-500";
+      case "Trust Layer":
+        return "bg-yellow-500/20 text-yellow-500";
+      case "Get Historical Data":
+        return "bg-blue-500/20 text-blue-500";
+      case "Detect Trends":
+        return "bg-blue-500/20 text-blue-500";
+      case "Get PNL Potential":
+        return "bg-blue-500/20 text-blue-500";
+      case "Get Tweets":
+        return "bg-blue-500/20 text-blue-500";
+      case "Analyse Tweets":
+        return "bg-blue-500/20 text-blue-500";
       default:
         return "bg-gray-500/20 text-gray-500";
     }
+  };
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   return (
@@ -301,17 +257,27 @@ export default function AgentActionsPage() {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <Select value={filterType} onValueChange={setFilterType}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filter by type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="analysis">Analysis</SelectItem>
-                    <SelectItem value="decision">Decision</SelectItem>
-                    <SelectItem value="transaction">Transaction</SelectItem>
-                    <SelectItem value="communication">Communication</SelectItem>
+                    <SelectItem value="Get Alpha from Group Texts">Get Alpha</SelectItem>
+                    <SelectItem value="Analyse Texts">Analyse Texts</SelectItem>
+                    <SelectItem value="Analyse Each Alpha">Analyse Alpha</SelectItem>
+                    <SelectItem value="Check EDU Balance">Check EDU</SelectItem>
+                    <SelectItem value="Check Token Balance">Check Token</SelectItem>
+                    <SelectItem value="Validation Layer">Validation</SelectItem>
+                    <SelectItem value="Trust Layer">Trust</SelectItem>
+                    <SelectItem value="Get Historical Data">Historical Data</SelectItem>
+                    <SelectItem value="Detect Trends">Trends</SelectItem>
+                    <SelectItem value="Get PNL Potential">PNL Potential</SelectItem>
+                    <SelectItem value="Get Tweets">Get Tweets</SelectItem>
+                    <SelectItem value="Analyse Tweets">Analyse Tweets</SelectItem>
+                    <SelectItem value="Buy Token ALT">Buy Token ALT</SelectItem>
+                    <SelectItem value="Buy Token DEAL">Buy Token DEAL</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -323,8 +289,8 @@ export default function AgentActionsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="success">Success</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="failed">Failed</SelectItem>
                   </SelectContent>
                 </Select>
@@ -364,6 +330,18 @@ export default function AgentActionsPage() {
             <div className="flex items-center justify-center py-12">
               <RefreshCcw className="h-8 w-8 animate-spin text-primary" />
             </div>
+          ) : error ? (
+            <Card className="glass-card neon-border">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">
+                  Error Loading Logs
+                </h3>
+                <p className="text-gray-400 text-center max-w-md">
+                  {error}
+                </p>
+              </CardContent>
+            </Card>
           ) : sortedActions.length === 0 ? (
             <Card className="glass-card neon-border">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -380,7 +358,7 @@ export default function AgentActionsPage() {
           ) : (
             sortedActions.map((action) => (
               <Card
-                key={action.id}
+                key={action.timestamp.toISOString()}
                 className="glass-card neon-border overflow-hidden"
               >
                 <div className="border-l-4 border-primary">
@@ -388,24 +366,21 @@ export default function AgentActionsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                       <div className="flex items-center">
                         <Badge
-                          className={`mr-3 ${getActionTypeColor(action.type)}`}
+                          className={`mr-3 ${getActionTypeColor(action.action)}`}
                         >
                           <span className="flex items-center">
-                            {getActionTypeIcon(action.type)}
-                            <span className="ml-1 capitalize">
-                              {action.type}
+                            {getActionTypeIcon(action.action)}
+                            <span className="ml-1">
+                              {action.action}
                             </span>
                           </span>
                         </Badge>
-                        <CardTitle className="text-lg">
-                          {action.title}
-                        </CardTitle>
                       </div>
                       <div className="flex items-center mt-2 md:mt-0">
                         <div className="flex items-center mr-4">
-                          {getActionStatusIcon(action.status)}
+                          {getActionStatusIcon(action.output?.status)}
                           <span className="ml-1 text-sm capitalize">
-                            {action.status}
+                            {action.output?.status || "unknown"}
                           </span>
                         </div>
                         <div className="flex items-center text-gray-400 text-sm">
@@ -416,66 +391,173 @@ export default function AgentActionsPage() {
                         </div>
                       </div>
                     </div>
-                    <CardDescription className="mt-1">
-                      {action.description}
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div>
                         <h4 className="text-sm font-medium text-gray-400 mb-2">
-                          Details
+                          Input Data
                         </h4>
-                        <ul className="space-y-1 text-sm">
-                          {action.details.map((detail, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
-                                {index + 1}
-                              </span>
-                              <span>{detail}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {action.sources && action.sources.length > 0 && (
-                          <div className="flex items-center mr-4">
-                            <span className="text-xs text-gray-400 mr-2">
-                              Sources:
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {action.sources.map((source, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {source}
-                                </Badge>
-                              ))}
-                            </div>
+                        {typeof action.input === 'object' ? (
+                          <ul className="space-y-1 text-sm">
+                            {Object.entries(action.input).map(([key, value], index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
+                                  {index + 1}
+                                </span>
+                                <span>
+                                  <span className="font-medium">{key}:</span>{" "}
+                                  {Array.isArray(value) ? (
+                                    <ul className="mt-1 space-y-1">
+                                      {value.map((item, itemIndex) => (
+                                        <li key={itemIndex} className="ml-4">
+                                          {Array.isArray(item) ? (
+                                            <ul className="mt-1 space-y-1">
+                                              {item.map((subItem, subIndex) => (
+                                                <li key={subIndex} className="ml-4">
+                                                  {typeof subItem === "object" ? (
+                                                    <pre className="inline-block">
+                                                      {JSON.stringify(subItem, null, 2)}
+                                                    </pre>
+                                                  ) : subItem !== undefined ? (
+                                                    subItem.toString()
+                                                  ) : (
+                                                    "undefined"
+                                                  )}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          ) : typeof item === "object" ? (
+                                            <pre className="inline-block">
+                                              {JSON.stringify(item, null, 2)}
+                                            </pre>
+                                          ) : item !== undefined ? (
+                                            item.toString()
+                                          ) : (
+                                            "undefined"
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : typeof value === "object" ? (
+                                    <pre className="inline-block">
+                                      {JSON.stringify(value, null, 2)}
+                                    </pre>
+                                  ) : value !== undefined ? (
+                                    key.toLowerCase().includes('hash') ? (
+                                      <div className="flex items-center gap-2">
+                                        <span>{value.toString()}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => copyToClipboard(value.toString(), `hash-${value}-${action.timestamp.toISOString()}`)}
+                                          className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
+                                        >
+                                          {copied === `hash-${value}-${action.timestamp.toISOString()}` ? (
+                                            "✓"
+                                          ) : (
+                                            <Copy className="h-3 w-3" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      value.toString()
+                                    )
+                                  ) : (
+                                    "undefined"
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-sm">
+                            {action.input !== undefined ? action.input.toString() : "undefined"}
                           </div>
                         )}
+                      </div>
 
-                        {action.relatedAssets &&
-                          action.relatedAssets.length > 0 && (
-                            <div className="flex items-center">
-                              <span className="text-xs text-gray-400 mr-2">
-                                Assets:
-                              </span>
-                              <div className="flex flex-wrap gap-1">
-                                {action.relatedAssets.map((asset, index) => (
-                                  <Badge
-                                    key={index}
-                                    className="bg-primary/20 text-primary text-xs"
-                                  >
-                                    {asset}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-400 mb-2">
+                          Output Data
+                        </h4>
+                        {typeof action.output === 'object' ? (
+                          <ul className="space-y-1 text-sm">
+                            {Object.entries(action.output).map(([key, value], index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
+                                  {index + 1}
+                                </span>
+                                <span>
+                                  <span className="font-medium">{key}:</span>{" "}
+                                  {Array.isArray(value) ? (
+                                    <ul className="mt-1 space-y-1">
+                                      {value.map((item, itemIndex) => (
+                                        <li key={itemIndex} className="ml-4">
+                                          {Array.isArray(item) ? (
+                                            <ul className="mt-1 space-y-1">
+                                              {item.map((subItem, subIndex) => (
+                                                <li key={subIndex} className="ml-4">
+                                                  {typeof subItem === "object" ? (
+                                                    <pre className="inline-block">
+                                                      {JSON.stringify(subItem, null, 2)}
+                                                    </pre>
+                                                  ) : subItem !== undefined ? (
+                                                    subItem.toString()
+                                                  ) : (
+                                                    "undefined"
+                                                  )}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          ) : typeof item === "object" ? (
+                                            <pre className="inline-block">
+                                              {JSON.stringify(item, null, 2)}
+                                            </pre>
+                                          ) : item !== undefined ? (
+                                            item.toString()
+                                          ) : (
+                                            "undefined"
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : typeof value === "object" ? (
+                                    <pre className="inline-block">
+                                      {JSON.stringify(value, null, 2)}
+                                    </pre>
+                                  ) : value !== undefined ? (
+                                    key.toLowerCase().includes('hash') ? (
+                                      <div className="flex items-center gap-2">
+                                        <span>{value.toString()}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => copyToClipboard(value.toString(), `hash-${value}-${action.timestamp.toISOString()}`)}
+                                          className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
+                                        >
+                                          {copied === `hash-${value}-${action.timestamp.toISOString()}` ? (
+                                            "✓"
+                                          ) : (
+                                            <Copy className="h-3 w-3" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      value.toString()
+                                    )
+                                  ) : (
+                                    "undefined"
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-sm">
+                            {action.output !== undefined ? action.output.toString() : "undefined"}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
