@@ -8,13 +8,9 @@ import {
   Search,
   Calendar,
   Tag,
-  ThumbsUp,
   ThumbsDown,
-  ArrowUpDown,
-  Filter,
   Bookmark,
   Share2,
-  Clock,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import {
@@ -532,7 +528,7 @@ export default function AgentLessonsPage() {
           <CardHeader>
             <CardTitle>Learning Statistics</CardTitle>
             <CardDescription>
-              Overview of your AI agent's learning progress
+              Overview of your AI agent&apos;s learning progress
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -585,7 +581,7 @@ export default function AgentLessonsPage() {
                   <p className="text-gray-300">
                     Your AI agent has been particularly focused on
                     market-related lessons, which account for 40% of all
-                    insights. This reflects the agent's emphasis on
+                    insights. This reflects the agent&apos;s emphasis on
                     understanding market sentiment and on-chain metrics to
                     inform trading decisions. The agent is building a balanced
                     knowledge base across all categories, with technical
@@ -637,11 +633,11 @@ export default function AgentLessonsPage() {
                     Learning Acceleration
                   </h3>
                   <p className="text-gray-300">
-                    Your AI agent's learning rate has increased by 12% compared
-                    to the previous period. This acceleration is primarily
-                    driven by improved data processing capabilities and expanded
-                    access to market data sources. The agent is now able to
-                    identify patterns and draw conclusions more quickly,
+                    Your AI agent&apos;s learning rate has increased by 12%
+                    compared to the previous period. This acceleration is
+                    primarily driven by improved data processing capabilities
+                    and expanded access to market data sources. The agent is now
+                    able to identify patterns and draw conclusions more quickly,
                     particularly in the areas of market sentiment analysis and
                     on-chain metrics interpretation.
                   </p>

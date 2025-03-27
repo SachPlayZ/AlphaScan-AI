@@ -11,14 +11,8 @@ import {
   DollarSign,
   Clock,
 } from "lucide-react";
-import { WalletData, Transaction, updateEduBalance } from "@/lib/wallet";
+import { WalletData, updateEduBalance } from "@/lib/wallet";
 import { Navbar } from "@/components/navbar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Card,
   CardContent,
@@ -96,6 +90,7 @@ export default function PortfolioPage() {
   const [totalProfitLoss, setTotalProfitLoss] = useState(0);
   const [profitLossPercentage, setProfitLossPercentage] = useState(0);
 
+  console.log(isLoading);
   useEffect(() => {
     const fetchWallet = async () => {
       setIsLoading(true);

@@ -227,7 +227,7 @@ export default function LoginPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    We'll send you a verification code via SMS
+                    We&apos;ll send you a verification code via SMS
                   </p>
                 </div>
 
@@ -279,7 +279,7 @@ export default function LoginPage() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground text-center">
-                    We've sent a 5-digit code to {countryCode + phoneNumber}
+                    We&apos;ve sent a 5-digit code to {countryCode + phoneNumber}
                   </p>
                 </div>
 

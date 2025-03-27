@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -8,10 +8,6 @@ import {
   PieChart,
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Users,
-  MessageSquare,
-  Bell,
   Search,
   Menu,
   X,
@@ -19,7 +15,6 @@ import {
   Activity,
   BookOpen,
   Wallet,
-  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
