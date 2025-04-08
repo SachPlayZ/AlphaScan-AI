@@ -80,19 +80,28 @@ def decrypt_data(encrypted_data: str) -> str:
 
 def generate_reply(message_text: str) -> str:
     """Dummy reply generator"""
-    return f"Thanks for your message: {message_text}"
-
+    response = generate("You are Arnab's helpful assistant that generates replies to messages representing Arnab. The user will send you a message and you will generate a reply to it. The reply should be a single sentence and should be in the same language as the message. The reply should be short and to the point. The message is: " + message_text)
+    return response
 
 async def init_message_listener(
     user_id: str, api_id: int, api_hash: str, session_string: str
 ):
     """Initialize and start a message listener for a user"""
     try:
+        # Check if client already exists for this user
+        if user_id in message_listener_clients:
+            print(f"Client already exists for user {user_id}, disconnecting old client")
+            try:
+                await message_listener_clients[user_id].disconnect()
+            except Exception as e:
+                print(f"Error disconnecting old client for {user_id}: {str(e)}")
+        
         session = StringSession(session_string)
         client = TelegramClient(session, api_id, api_hash)
 
         await client.connect()
         if not await client.is_user_authorized():
+            print(f"User {user_id} not authorized, disconnecting client")
             await client.disconnect()
             return
 
@@ -103,13 +112,41 @@ async def init_message_listener(
             reply = generate_reply(event.message.text)
             await event.reply(reply)
 
-        asyncio.create_task(client.run_until_disconnected())
+        # Store the client in the dictionary
         message_listener_clients[user_id] = client
+        
+        # Run the client in the background
+        asyncio.create_task(client.run_until_disconnected())
+        print(f"Message listener initialized for user {user_id}")
     except Exception as e:
         print(f"Error initializing listener for {user_id}: {str(e)}")
 
 
 async def get_user_client(user_id: str) -> TelegramClient:
+    """Get a Telegram client for a user, reusing existing client if available"""
+    # Check if we already have a client for this user
+    if user_id in message_listener_clients:
+        client = message_listener_clients[user_id]
+        # Check if the client is connected
+        if not client.is_connected():
+            try:
+                await client.connect()
+                if not await client.is_user_authorized():
+                    raise HTTPException(status_code=401, detail="Session expired")
+            except Exception as e:
+                print(f"Error reconnecting client for {user_id}: {str(e)}")
+                # Remove the invalid client
+                del message_listener_clients[user_id]
+                # Create a new client
+                return await create_new_client(user_id)
+        return client
+    
+    # Create a new client if we don't have one
+    return await create_new_client(user_id)
+
+
+async def create_new_client(user_id: str) -> TelegramClient:
+    """Create a new Telegram client for a user"""
     user = await db[COLLECTION_NAME].find_one({"user_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not registered")
@@ -119,12 +156,19 @@ async def get_user_client(user_id: str) -> TelegramClient:
         StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
     )
 
-    if not client.is_connected():
+    try:
         await client.connect()
         if not await client.is_user_authorized():
+            await client.disconnect()
             raise HTTPException(status_code=401, detail="Session expired")
-
-    return client
+        
+        # Store the client for future use
+        message_listener_clients[user_id] = client
+        return client
+    except Exception as e:
+        if client.is_connected():
+            await client.disconnect()
+        raise HTTPException(status_code=500, detail=f"Error creating client: {str(e)}")
 
 
 @app.on_event("startup")
@@ -147,20 +191,32 @@ async def startup_event():
 
     print("Initializing group watchers...")
     try:
+        # Group watch entries by user_id for better organization
+        user_watch_entries = {}
         cursor = db[WATCHED_GROUPS_COLLECTION].find({})
         watch_entries = await cursor.to_list(None)
         print(f"Found {len(watch_entries)} watch entries to initialize")
 
+        # Group entries by user_id
         for entry in watch_entries:
-            try:
-                print(
-                    f"Starting watcher for group {entry['group_name']} (ID: {entry['group_id']})"
-                )
-                await start_group_watcher(
-                    entry["user_id"], entry["group_id"], entry.get("topic_id")
-                )
-            except Exception as e:
-                print(f"Failed to start watcher for {entry['group_name']}: {str(e)}")
+            user_id = entry["user_id"]
+            if user_id not in user_watch_entries:
+                user_watch_entries[user_id] = []
+            user_watch_entries[user_id].append(entry)
+
+        # Initialize watchers for each user in parallel
+        for user_id, entries in user_watch_entries.items():
+            print(f"Initializing watchers for user {user_id} with {len(entries)} groups")
+            for entry in entries:
+                try:
+                    print(
+                        f"Starting watcher for group {entry['group_name']} (ID: {entry['group_id']})"
+                    )
+                    await start_group_watcher(
+                        entry["user_id"], entry["group_id"], entry.get("topic_id")
+                    )
+                except Exception as e:
+                    print(f"Failed to start watcher for {entry['group_name']}: {str(e)}")
 
     except Exception as e:
         print(f"Error restarting watchers: {str(e)}")
@@ -171,11 +227,31 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Disconnect all message listeners on shutdown"""
-    for client in message_listener_clients.values():
-        await client.disconnect()
-
-    for task in active_watchers.values():
-        task.cancel()
+    print("Shutting down application...")
+    
+    # Cancel all active watchers
+    print(f"Cancelling {len(active_watchers)} active watchers")
+    for watcher_key, task in active_watchers.items():
+        try:
+            print(f"Cancelling watcher {watcher_key}")
+            task.cancel()
+        except Exception as e:
+            print(f"Error cancelling watcher {watcher_key}: {str(e)}")
+    
+    # Wait for all tasks to be cancelled
+    if active_watchers:
+        await asyncio.sleep(2)  # Give tasks time to cancel
+    
+    # Disconnect all clients
+    print(f"Disconnecting {len(message_listener_clients)} message listener clients")
+    for user_id, client in message_listener_clients.items():
+        try:
+            print(f"Disconnecting client for user {user_id}")
+            await client.disconnect()
+        except Exception as e:
+            print(f"Error disconnecting client for user {user_id}: {str(e)}")
+    
+    print("Shutdown complete")
 
 
 @app.post("/init")
@@ -359,17 +435,45 @@ async def start_group_watcher(user_id, group_id, topic_id=None):
     watcher_key = f"{user_id}:{group_id}:{topic_id}"
     print(f"Starting group watcher with key: {watcher_key}")
 
+    # Cancel existing watcher if it exists
     if watcher_key in active_watchers:
         print(f"Cancelling existing watcher for {watcher_key}")
-        active_watchers[watcher_key].cancel()
+        try:
+            active_watchers[watcher_key].cancel()
+            await asyncio.sleep(1)  # Give the task time to cancel
+        except Exception as e:
+            print(f"Error cancelling watcher {watcher_key}: {str(e)}")
         del active_watchers[watcher_key]
 
+    # Create a new watcher task
     print(f"Creating new watcher task for {watcher_key}")
     task = asyncio.create_task(watch_group_messages(user_id, group_id, topic_id))
     active_watchers[watcher_key] = task
+    
+    # Add error handling for the task
+    task.add_done_callback(lambda t: handle_watcher_task_done(t, watcher_key))
+    
     print(f"Watcher task created and stored for {watcher_key}")
-
     return task
+
+
+def handle_watcher_task_done(task, watcher_key):
+    """Handle task completion and cleanup"""
+    try:
+        # Check if the task was cancelled
+        if task.cancelled():
+            print(f"Watcher task {watcher_key} was cancelled")
+            return
+        
+        # Check if there was an exception
+        exc = task.exception()
+        if exc:
+            print(f"Watcher task {watcher_key} failed with exception: {str(exc)}")
+            # Remove the failed watcher from active_watchers
+            if watcher_key in active_watchers:
+                del active_watchers[watcher_key]
+    except Exception as e:
+        print(f"Error handling watcher task completion for {watcher_key}: {str(e)}")
 
 
 async def watch_group_messages(user_id, group_id, topic_id=None):
@@ -397,31 +501,28 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
         print(f"Found watch entry for group {watch_entry['group_name']}")
         print(f"Setting up client for user {user_id} to watch group {group_id}")
 
-        session = decrypt_data(user["session_string"])
-        print("Decrypted session string")
+        # Use the existing client if available, otherwise create a new one
+        client = None
+        if user_id in message_listener_clients:
+            client = message_listener_clients[user_id]
+            print(f"Using existing client for user {user_id}")
+        else:
+            session = decrypt_data(user["session_string"])
+            client = TelegramClient(
+                StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
+            )
+            print(f"Created new client for user {user_id}")
+            await client.connect()
+            if not await client.is_user_authorized():
+                print(f"User {user_id} not authorized for watcher")
+                await client.disconnect()
+                return
+            message_listener_clients[user_id] = client
 
-        client = TelegramClient(
-            StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
-        )
-        print("Created TelegramClient instance")
-
-        print("Attempting to connect client...")
-        await client.connect()
-        print("Client connected")
-
-        if not await client.is_user_authorized():
-            print(f"User {user_id} not authorized for watcher")
-            await client.disconnect()
-            return
-
-        print(f"Successfully connected client for user {user_id}")
-        print(
-            f"Starting watcher for {watch_entry['group_name']}{f' - {watch_entry['topic_name']}' if topic_id else ''}"
-        )
-
+        # Create a unique event handler for this specific group/topic
         @client.on(events.NewMessage(chats=group_id))
         async def handler(event):
-            print("DEBUG: New message event received!")
+            print(f"DEBUG: New message event received for user {user_id} in group {group_id}!")
             try:
                 if topic_id is not None:
                     if (
@@ -459,10 +560,18 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
                 )
 
             except Exception as e:
-                print(f"Error in message handler: {str(e)}")
+                print(f"Error in message handler for user {user_id}: {str(e)}")
 
-        print("DEBUG: Event handler registered, starting to run client")
-        await client.run_until_disconnected()
+        print(f"DEBUG: Event handler registered for user {user_id}, group {group_id}")
+        
+        # Keep the watcher running
+        while True:
+            await asyncio.sleep(3600)  # Sleep for an hour to keep the task alive
+            # Check if the watcher should be stopped
+            watcher_key = f"{user_id}:{group_id}:{topic_id}"
+            if watcher_key not in active_watchers:
+                print(f"Watcher {watcher_key} no longer in active_watchers, stopping")
+                break
 
     except asyncio.CancelledError:
         print(f"Watcher for {user_id}:{group_id}:{topic_id} cancelled")
@@ -1078,6 +1187,7 @@ async def verify_otp(request: VerifyOTPRequest):
             phone_code_hash=temp_data["phone_code_hash"],
         )
     except Exception as e:
+        print(f"Error signing in: {str(e)}")
         await client.disconnect()
         del temp_clients[request.user_id]
         raise HTTPException(status_code=401, detail="Invalid OTP")
@@ -1094,14 +1204,29 @@ async def verify_otp(request: VerifyOTPRequest):
     await db[COLLECTION_NAME].insert_one(user_data)
 
     try:
+        # Initialize message listener for the new user
         await init_message_listener(
             request.user_id,
             user_data["api_id"],
             decrypt_data(user_data["api_hash"]),
             decrypt_data(user_data["session_string"]),
         )
+        
+        # Check if the user has any watched groups and initialize them
+        cursor = db[WATCHED_GROUPS_COLLECTION].find({"user_id": request.user_id})
+        watch_entries = await cursor.to_list(None)
+        
+        if watch_entries:
+            print(f"Initializing {len(watch_entries)} watched groups for new user {request.user_id}")
+            for entry in watch_entries:
+                try:
+                    await start_group_watcher(
+                        entry["user_id"], entry["group_id"], entry.get("topic_id")
+                    )
+                except Exception as e:
+                    print(f"Failed to start watcher for new user {request.user_id}, group {entry['group_name']}: {str(e)}")
     except Exception as e:
-        print(f"Failed to start listener for new user {request.user_id}: {str(e)}")
+        print(f"Failed to initialize services for new user {request.user_id}: {str(e)}")
 
     await client.disconnect()
     del temp_clients[request.user_id]
