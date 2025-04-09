@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Users, ChevronDown, Plus } from "lucide-react";
+import { ArrowRight, Users, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
@@ -51,7 +51,7 @@ const demo: GroupData = {
       participants_count: 0,
       username: null,
       description: null,
-      type: "group"
+      type: "group",
     },
     {
       id: 4731770966,
@@ -59,8 +59,8 @@ const demo: GroupData = {
       participants_count: 0,
       username: null,
       description: null,
-      type: "group"
-    }
+      type: "group",
+    },
   ],
   supergroups: [
     {
@@ -76,9 +76,9 @@ const demo: GroupData = {
           id: 1,
           title: "General",
           icon_color: 7322096,
-          icon_emoji: null
-        }
-      ]
+          icon_emoji: null,
+        },
+      ],
     },
     {
       id: 1564212308,
@@ -93,18 +93,18 @@ const demo: GroupData = {
           id: 17,
           title: "Queries",
           icon_color: 7322096,
-          icon_emoji: null
+          icon_emoji: null,
         },
         {
           id: 1,
           title: "General",
           icon_color: 7322096,
-          icon_emoji: null
-        }
-      ]
-    }
+          icon_emoji: null,
+        },
+      ],
+    },
   ],
-  channels: []
+  channels: [],
 };
 
 export default function SelectGroupPage() {
@@ -116,10 +116,12 @@ export default function SelectGroupPage() {
   const { toast } = useToast();
 
   const getGroups = async () => {
-    const response = await fetch(`http://localhost:8000/user-groups/${address}`);
+    const response = await fetch(
+      `http://localhost:8000/user-groups/${address}`
+    );
     const data = await response.json();
     setDemoGroups(data);
-  }
+  };
 
   useEffect(() => {
     if (address) {
@@ -139,19 +141,23 @@ export default function SelectGroupPage() {
   const handleContinue = async () => {
     if (selectedGroup) {
       // If it's a supergroup with topics, require topic selection
-      if (selectedGroup.type === "supergroup" && selectedGroup.is_forum && !selectedTopic) {
+      if (
+        selectedGroup.type === "supergroup" &&
+        selectedGroup.is_forum &&
+        !selectedTopic
+      ) {
         return;
       }
       const response = await fetch(`http://localhost:8000/watch-group`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           user_id: address,
           group_name: selectedGroup.title,
           topic_name: selectedTopic?.title,
-        })
+        }),
       });
       if (response.ok) {
         toast({
@@ -191,7 +197,8 @@ export default function SelectGroupPage() {
               Select a <span className="neon-text-purple">Group</span>
             </h1>
             <p className="text-muted-foreground">
-              Choose a group to access AI-powered market insights and discussions
+              Choose a group to access AI-powered market insights and
+              discussions
             </p>
           </div>
 
@@ -235,7 +242,7 @@ export default function SelectGroupPage() {
                   Choose a specific topic to focus on within this group
                 </p>
               </div>
-              
+
               <div className="flex flex-col items-center space-y-4">
                 <div className="w-full max-w-md">
                   <Select
@@ -252,14 +259,16 @@ export default function SelectGroupPage() {
                     </SelectTrigger>
                     <SelectContent className="bg-background/95 backdrop-blur-sm border-primary/20">
                       {selectedGroup.topics?.map((topic) => (
-                        <SelectItem 
-                          key={topic.id} 
+                        <SelectItem
+                          key={topic.id}
                           value={topic.id.toString()}
                           className="text-base py-3 cursor-pointer hover:bg-primary/10 transition-colors duration-200"
                         >
                           <div className="flex items-center space-x-2">
                             {topic.icon_emoji && (
-                              <span className="text-xl">{topic.icon_emoji}</span>
+                              <span className="text-xl">
+                                {topic.icon_emoji}
+                              </span>
                             )}
                             <span>{topic.title}</span>
                           </div>
@@ -268,11 +277,14 @@ export default function SelectGroupPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 {selectedTopic && (
                   <div className="mt-4 text-center animate-fade-in">
                     <p className="text-sm text-muted-foreground">
-                      Selected topic: <span className="font-medium text-primary">{selectedTopic.title}</span>
+                      Selected topic:{" "}
+                      <span className="font-medium text-primary">
+                        {selectedTopic.title}
+                      </span>
                     </p>
                   </div>
                 )}
@@ -284,7 +296,12 @@ export default function SelectGroupPage() {
             <Button
               type="button"
               className="bg-primary hover:bg-primary/80 neon-glow group transition-all duration-300 ease-in-out z-20 relative px-8"
-              disabled={!selectedGroup || (selectedGroup.type === "supergroup" && selectedGroup.is_forum && !selectedTopic)}
+              disabled={
+                !selectedGroup ||
+                (selectedGroup.type === "supergroup" &&
+                  selectedGroup.is_forum &&
+                  !selectedTopic)
+              }
               onClick={handleContinue}
             >
               Add Group to Watchlist

@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import {
   getOrCreateWallet,
   WalletData,
-  addTransaction,
   updateEduBalance,
   sendEduTokens,
 } from "@/lib/wallet";

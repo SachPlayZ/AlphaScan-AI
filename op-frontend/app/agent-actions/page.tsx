@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   Clock,
   CheckCircle,
   XCircle,
@@ -61,21 +60,23 @@ export default function AgentActionsPage() {
     if (!address) return;
     const fetchLogs = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/get-logs/${address}`); // Replace with actual user ID
+        const response = await fetch(
+          `http://localhost:8000/get-logs/${address}`
+        ); // Replace with actual user ID
         if (!response.ok) {
           throw new Error("Failed to fetch logs");
         }
         const data = await response.json();
         console.log(data);
-        
+
         // Transform the logs into the correct format
         const transformedLogs = data.map((log: any) => ({
           timestamp: new Date(log.timestamp),
           action: log.action,
           input: log.input,
-          output: log.output
+          output: log.output,
         }));
-        
+
         setAgentActions(transformedLogs);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch logs");
@@ -92,16 +93,22 @@ export default function AgentActionsPage() {
     const matchesSearch =
       searchQuery === "" ||
       action.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      JSON.stringify(action.input).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      JSON.stringify(action.output).toLowerCase().includes(searchQuery.toLowerCase());
+      JSON.stringify(action.input)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      JSON.stringify(action.output)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     // Apply type filter
     const matchesType = filterType === "all" || action.action === filterType;
 
     // Apply status filter
     const matchesStatus =
-      filterStatus === "all" || 
-      (action.output && action.output.status && action.output.status === filterStatus);
+      filterStatus === "all" ||
+      (action.output &&
+        action.output.status &&
+        action.output.status === filterStatus);
 
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -115,7 +122,9 @@ export default function AgentActionsPage() {
 
   const formatTimeAgo = (timestamp: Date) => {
     const now = new Date();
-    const seconds = Math.floor((now.getTime() - timestamp.getTime() - (5.5 * 60 * 60 * 1000)) / 1000);
+    const seconds = Math.floor(
+      (now.getTime() - timestamp.getTime() - 5.5 * 60 * 60 * 1000) / 1000
+    );
 
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
@@ -125,18 +134,20 @@ export default function AgentActionsPage() {
 
   const formatDateTime = (timestamp: Date) => {
     // Convert UTC to IST by adding 5 hours and 30 minutes
-    const istDate = new Date(timestamp.getTime() + (5.5 * 60 * 60 * 1000));
-    
-    return istDate.toLocaleString('en-US', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }) + ' IST';
+    const istDate = new Date(timestamp.getTime() + 5.5 * 60 * 60 * 1000);
+
+    return (
+      istDate.toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }) + " IST"
+    );
   };
 
   const getActionTypeIcon = (type: string) => {
@@ -172,7 +183,7 @@ export default function AgentActionsPage() {
 
   const getActionStatusIcon = (status: string | undefined) => {
     if (!status) return <AlertCircle className="h-4 w-4 text-gray-500" />;
-    
+
     switch (status) {
       case "success":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -264,20 +275,34 @@ export default function AgentActionsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="Get Alpha from Group Texts">Get Alpha</SelectItem>
+                    <SelectItem value="Get Alpha from Group Texts">
+                      Get Alpha
+                    </SelectItem>
                     <SelectItem value="Analyse Texts">Analyse Texts</SelectItem>
-                    <SelectItem value="Analyse Each Alpha">Analyse Alpha</SelectItem>
+                    <SelectItem value="Analyse Each Alpha">
+                      Analyse Alpha
+                    </SelectItem>
                     <SelectItem value="Check EDU Balance">Check EDU</SelectItem>
-                    <SelectItem value="Check Token Balance">Check Token</SelectItem>
+                    <SelectItem value="Check Token Balance">
+                      Check Token
+                    </SelectItem>
                     <SelectItem value="Validation Layer">Validation</SelectItem>
                     <SelectItem value="Trust Layer">Trust</SelectItem>
-                    <SelectItem value="Get Historical Data">Historical Data</SelectItem>
+                    <SelectItem value="Get Historical Data">
+                      Historical Data
+                    </SelectItem>
                     <SelectItem value="Detect Trends">Trends</SelectItem>
-                    <SelectItem value="Get PNL Potential">PNL Potential</SelectItem>
+                    <SelectItem value="Get PNL Potential">
+                      PNL Potential
+                    </SelectItem>
                     <SelectItem value="Get Tweets">Get Tweets</SelectItem>
-                    <SelectItem value="Analyse Tweets">Analyse Tweets</SelectItem>
+                    <SelectItem value="Analyse Tweets">
+                      Analyse Tweets
+                    </SelectItem>
                     <SelectItem value="Buy Token ALT">Buy Token ALT</SelectItem>
-                    <SelectItem value="Buy Token DEAL">Buy Token DEAL</SelectItem>
+                    <SelectItem value="Buy Token DEAL">
+                      Buy Token DEAL
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -337,9 +362,7 @@ export default function AgentActionsPage() {
                 <h3 className="text-xl font-medium text-white mb-2">
                   Error Loading Logs
                 </h3>
-                <p className="text-gray-400 text-center max-w-md">
-                  {error}
-                </p>
+                <p className="text-gray-400 text-center max-w-md">{error}</p>
               </CardContent>
             </Card>
           ) : sortedActions.length === 0 ? (
@@ -366,13 +389,13 @@ export default function AgentActionsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                       <div className="flex items-center">
                         <Badge
-                          className={`mr-3 ${getActionTypeColor(action.action)}`}
+                          className={`mr-3 ${getActionTypeColor(
+                            action.action
+                          )}`}
                         >
                           <span className="flex items-center">
                             {getActionTypeIcon(action.action)}
-                            <span className="ml-1">
-                              {action.action}
-                            </span>
+                            <span className="ml-1">{action.action}</span>
                           </span>
                         </Badge>
                       </div>
@@ -398,81 +421,102 @@ export default function AgentActionsPage() {
                         <h4 className="text-sm font-medium text-gray-400 mb-2">
                           Input Data
                         </h4>
-                        {typeof action.input === 'object' ? (
+                        {typeof action.input === "object" ? (
                           <ul className="space-y-1 text-sm">
-                            {Object.entries(action.input).map(([key, value], index) => (
-                              <li key={index} className="flex items-start">
-                                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
-                                  {index + 1}
-                                </span>
-                                <span>
-                                  <span className="font-medium">{key}:</span>{" "}
-                                  {Array.isArray(value) ? (
-                                    <ul className="mt-1 space-y-1">
-                                      {value.map((item, itemIndex) => (
-                                        <li key={itemIndex} className="ml-4">
-                                          {Array.isArray(item) ? (
-                                            <ul className="mt-1 space-y-1">
-                                              {item.map((subItem, subIndex) => (
-                                                <li key={subIndex} className="ml-4">
-                                                  {typeof subItem === "object" ? (
-                                                    <pre className="inline-block">
-                                                      {JSON.stringify(subItem, null, 2)}
-                                                    </pre>
-                                                  ) : subItem !== undefined ? (
-                                                    subItem.toString()
-                                                  ) : (
-                                                    "undefined"
-                                                  )}
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          ) : typeof item === "object" ? (
-                                            <pre className="inline-block">
-                                              {JSON.stringify(item, null, 2)}
-                                            </pre>
-                                          ) : item !== undefined ? (
-                                            item.toString()
-                                          ) : (
-                                            "undefined"
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  ) : typeof value === "object" ? (
-                                    <pre className="inline-block">
-                                      {JSON.stringify(value, null, 2)}
-                                    </pre>
-                                  ) : value !== undefined ? (
-                                    key.toLowerCase().includes('hash') ? (
-                                      <div className="flex items-center gap-2">
-                                        <span>{value.toString()}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => copyToClipboard(value.toString(), `hash-${value}-${action.timestamp.toISOString()}`)}
-                                          className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
-                                        >
-                                          {copied === `hash-${value}-${action.timestamp.toISOString()}` ? (
-                                            "✓"
-                                          ) : (
-                                            <Copy className="h-3 w-3" />
-                                          )}
-                                        </Button>
-                                      </div>
+                            {Object.entries(action.input).map(
+                              ([key, value], index) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
+                                    {index + 1}
+                                  </span>
+                                  <span>
+                                    <span className="font-medium">{key}:</span>{" "}
+                                    {Array.isArray(value) ? (
+                                      <ul className="mt-1 space-y-1">
+                                        {value.map((item, itemIndex) => (
+                                          <li key={itemIndex} className="ml-4">
+                                            {Array.isArray(item) ? (
+                                              <ul className="mt-1 space-y-1">
+                                                {item.map(
+                                                  (subItem, subIndex) => (
+                                                    <li
+                                                      key={subIndex}
+                                                      className="ml-4"
+                                                    >
+                                                      {typeof subItem ===
+                                                      "object" ? (
+                                                        <pre className="inline-block">
+                                                          {JSON.stringify(
+                                                            subItem,
+                                                            null,
+                                                            2
+                                                          )}
+                                                        </pre>
+                                                      ) : subItem !==
+                                                        undefined ? (
+                                                        subItem.toString()
+                                                      ) : (
+                                                        "undefined"
+                                                      )}
+                                                    </li>
+                                                  )
+                                                )}
+                                              </ul>
+                                            ) : typeof item === "object" ? (
+                                              <pre className="inline-block">
+                                                {JSON.stringify(item, null, 2)}
+                                              </pre>
+                                            ) : item !== undefined ? (
+                                              item.toString()
+                                            ) : (
+                                              "undefined"
+                                            )}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : typeof value === "object" ? (
+                                      <pre className="inline-block">
+                                        {JSON.stringify(value, null, 2)}
+                                      </pre>
+                                    ) : value !== undefined ? (
+                                      key.toLowerCase().includes("hash") ? (
+                                        <div className="flex items-center gap-2">
+                                          <span>{value.toString()}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              copyToClipboard(
+                                                value.toString(),
+                                                `hash-${value}-${action.timestamp.toISOString()}`
+                                              )
+                                            }
+                                            className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
+                                          >
+                                            {copied ===
+                                            `hash-${value}-${action.timestamp.toISOString()}` ? (
+                                              "✓"
+                                            ) : (
+                                              <Copy className="h-3 w-3" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        value.toString()
+                                      )
                                     ) : (
-                                      value.toString()
-                                    )
-                                  ) : (
-                                    "undefined"
-                                  )}
-                                </span>
-                              </li>
-                            ))}
+                                      "undefined"
+                                    )}
+                                  </span>
+                                </li>
+                              )
+                            )}
                           </ul>
                         ) : (
                           <div className="text-sm">
-                            {action.input !== undefined ? action.input.toString() : "undefined"}
+                            {action.input !== undefined
+                              ? action.input.toString()
+                              : "undefined"}
                           </div>
                         )}
                       </div>
@@ -481,81 +525,102 @@ export default function AgentActionsPage() {
                         <h4 className="text-sm font-medium text-gray-400 mb-2">
                           Output Data
                         </h4>
-                        {typeof action.output === 'object' ? (
+                        {typeof action.output === "object" ? (
                           <ul className="space-y-1 text-sm">
-                            {Object.entries(action.output).map(([key, value], index) => (
-                              <li key={index} className="flex items-start">
-                                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
-                                  {index + 1}
-                                </span>
-                                <span>
-                                  <span className="font-medium">{key}:</span>{" "}
-                                  {Array.isArray(value) ? (
-                                    <ul className="mt-1 space-y-1">
-                                      {value.map((item, itemIndex) => (
-                                        <li key={itemIndex} className="ml-4">
-                                          {Array.isArray(item) ? (
-                                            <ul className="mt-1 space-y-1">
-                                              {item.map((subItem, subIndex) => (
-                                                <li key={subIndex} className="ml-4">
-                                                  {typeof subItem === "object" ? (
-                                                    <pre className="inline-block">
-                                                      {JSON.stringify(subItem, null, 2)}
-                                                    </pre>
-                                                  ) : subItem !== undefined ? (
-                                                    subItem.toString()
-                                                  ) : (
-                                                    "undefined"
-                                                  )}
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          ) : typeof item === "object" ? (
-                                            <pre className="inline-block">
-                                              {JSON.stringify(item, null, 2)}
-                                            </pre>
-                                          ) : item !== undefined ? (
-                                            item.toString()
-                                          ) : (
-                                            "undefined"
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  ) : typeof value === "object" ? (
-                                    <pre className="inline-block">
-                                      {JSON.stringify(value, null, 2)}
-                                    </pre>
-                                  ) : value !== undefined ? (
-                                    key.toLowerCase().includes('hash') ? (
-                                      <div className="flex items-center gap-2">
-                                        <span>{value.toString()}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => copyToClipboard(value.toString(), `hash-${value}-${action.timestamp.toISOString()}`)}
-                                          className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
-                                        >
-                                          {copied === `hash-${value}-${action.timestamp.toISOString()}` ? (
-                                            "✓"
-                                          ) : (
-                                            <Copy className="h-3 w-3" />
-                                          )}
-                                        </Button>
-                                      </div>
+                            {Object.entries(action.output).map(
+                              ([key, value], index) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs mr-2 mt-0.5">
+                                    {index + 1}
+                                  </span>
+                                  <span>
+                                    <span className="font-medium">{key}:</span>{" "}
+                                    {Array.isArray(value) ? (
+                                      <ul className="mt-1 space-y-1">
+                                        {value.map((item, itemIndex) => (
+                                          <li key={itemIndex} className="ml-4">
+                                            {Array.isArray(item) ? (
+                                              <ul className="mt-1 space-y-1">
+                                                {item.map(
+                                                  (subItem, subIndex) => (
+                                                    <li
+                                                      key={subIndex}
+                                                      className="ml-4"
+                                                    >
+                                                      {typeof subItem ===
+                                                      "object" ? (
+                                                        <pre className="inline-block">
+                                                          {JSON.stringify(
+                                                            subItem,
+                                                            null,
+                                                            2
+                                                          )}
+                                                        </pre>
+                                                      ) : subItem !==
+                                                        undefined ? (
+                                                        subItem.toString()
+                                                      ) : (
+                                                        "undefined"
+                                                      )}
+                                                    </li>
+                                                  )
+                                                )}
+                                              </ul>
+                                            ) : typeof item === "object" ? (
+                                              <pre className="inline-block">
+                                                {JSON.stringify(item, null, 2)}
+                                              </pre>
+                                            ) : item !== undefined ? (
+                                              item.toString()
+                                            ) : (
+                                              "undefined"
+                                            )}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : typeof value === "object" ? (
+                                      <pre className="inline-block">
+                                        {JSON.stringify(value, null, 2)}
+                                      </pre>
+                                    ) : value !== undefined ? (
+                                      key.toLowerCase().includes("hash") ? (
+                                        <div className="flex items-center gap-2">
+                                          <span>{value.toString()}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              copyToClipboard(
+                                                value.toString(),
+                                                `hash-${value}-${action.timestamp.toISOString()}`
+                                              )
+                                            }
+                                            className="h-6 w-6 p-0 hover:bg-primary/10 transition-all duration-300 relative"
+                                          >
+                                            {copied ===
+                                            `hash-${value}-${action.timestamp.toISOString()}` ? (
+                                              "✓"
+                                            ) : (
+                                              <Copy className="h-3 w-3" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        value.toString()
+                                      )
                                     ) : (
-                                      value.toString()
-                                    )
-                                  ) : (
-                                    "undefined"
-                                  )}
-                                </span>
-                              </li>
-                            ))}
+                                      "undefined"
+                                    )}
+                                  </span>
+                                </li>
+                              )
+                            )}
                           </ul>
                         ) : (
                           <div className="text-sm">
-                            {action.output !== undefined ? action.output.toString() : "undefined"}
+                            {action.output !== undefined
+                              ? action.output.toString()
+                              : "undefined"}
                           </div>
                         )}
                       </div>
