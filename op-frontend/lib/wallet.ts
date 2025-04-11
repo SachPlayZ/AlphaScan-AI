@@ -105,10 +105,8 @@ export async function updateEduBalance(
   wallet: WalletData
 ): Promise<WalletData> {
   try {
-    // Create a provider for the Edu testnet
-    const provider = new ethers.JsonRpcProvider(
-      eduTestnet.rpcUrls.default.http[0]
-    );
+    // Create a provider for the Edu testnet using the local proxy
+    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
 
     // Get the native token (EDU) balance
     const balanceWei = await provider.getBalance(wallet.address);
@@ -153,10 +151,8 @@ export async function sendEduTokens(
       return { success: false, error: "Invalid recipient address" };
     }
 
-    // Create a provider for the Edu testnet
-    const provider = new ethers.JsonRpcProvider(
-      eduTestnet.rpcUrls.default.http[0]
-    );
+    // Create a provider for the Edu testnet using the local proxy
+    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
 
     // Create a wallet instance with the private key
     const walletInstance = new ethers.Wallet(wallet.privateKey, provider);
@@ -353,9 +349,7 @@ export async function estimateTransactionGas(
   amount: number
 ): Promise<{ gasInWei: bigint; gasInEdu: number }> {
   try {
-    const provider = new ethers.JsonRpcProvider(
-      eduTestnet.rpcUrls.default.http[0]
-    );
+    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
     const amountInWei = ethers.parseEther(amount.toString());
 
     // Estimate gas for the transaction

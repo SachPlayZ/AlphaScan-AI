@@ -280,6 +280,8 @@ export default function Home() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Image
                       src="/placeholder.svg?height=400&width=400"
+                      height={400}
+                      width={400}
                       alt="AI Analysis Process Visualization"
                       className="rounded-lg shadow-lg neon-border"
                     />

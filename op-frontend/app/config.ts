@@ -6,7 +6,7 @@ export const eduTestnet = {
   name: "EDU Chain Testnet",
   nativeCurrency: { name: "EDU", symbol: "EDU", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://open-campus-codex-sepolia.drpc.org"] },
+    default: { http: ["http://localhost:3000/api/proxy"] },
   },
   blockExplorers: {
     default: {

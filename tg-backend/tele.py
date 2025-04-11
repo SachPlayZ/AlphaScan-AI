@@ -613,7 +613,7 @@ async def process_message(
         }
     )
     print("Message received:", message_text)
-    if len(queue[topic_name]) == 4:
+    if len(queue[topic_name]) == 10:
         last_10_messages = queue[topic_name]
         queue[topic_name] = []
         overlap_messages = last_10_messages[-3:]
