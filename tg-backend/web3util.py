@@ -9,7 +9,7 @@ load_dotenv()
 with open("abi.json", "r") as f:
     abi = json.load(f)
 
-contract_address = "0x5fff72E33AfE2cA22bccB7ABebe2b5348F6896b7"
+contract_address = "0x8fF00cED35C26EA1dC89F8B730F7949aC15F4116"
 w3 = Web3(Web3.HTTPProvider(os.getenv("RPC_URL")))
 contract = w3.eth.contract(address=contract_address, abi=abi)
 
