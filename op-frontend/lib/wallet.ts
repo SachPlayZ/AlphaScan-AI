@@ -106,7 +106,9 @@ export async function updateEduBalance(
 ): Promise<WalletData> {
   try {
     // Create a provider for the Edu testnet using the local proxy
-    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
+    const provider = new ethers.JsonRpcProvider(
+      "https://alpha-scan-ai.vercel.app/api/proxy"
+    );
 
     // Get the native token (EDU) balance
     const balanceWei = await provider.getBalance(wallet.address);
@@ -152,7 +154,9 @@ export async function sendEduTokens(
     }
 
     // Create a provider for the Edu testnet using the local proxy
-    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
+    const provider = new ethers.JsonRpcProvider(
+      "https://alpha-scan-ai.vercel.app/api/proxy"
+    );
 
     // Create a wallet instance with the private key
     const walletInstance = new ethers.Wallet(wallet.privateKey, provider);
@@ -349,7 +353,9 @@ export async function estimateTransactionGas(
   amount: number
 ): Promise<{ gasInWei: bigint; gasInEdu: number }> {
   try {
-    const provider = new ethers.JsonRpcProvider("http://localhost:3000/api/proxy");
+    const provider = new ethers.JsonRpcProvider(
+      "https://alpha-scan-ai.vercel.app/api/proxy"
+    );
     const amountInWei = ethers.parseEther(amount.toString());
 
     // Estimate gas for the transaction

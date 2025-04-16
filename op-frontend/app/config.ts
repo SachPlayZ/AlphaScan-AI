@@ -6,7 +6,7 @@ export const eduTestnet = {
   name: "EDU Chain Testnet",
   nativeCurrency: { name: "EDU", symbol: "EDU", decimals: 18 },
   rpcUrls: {
-    default: { http: ["http://localhost:3000/api/proxy"] },
+    default: { http: ["https://alpha-scan-ai.vercel.app/api/proxy"] },
   },
   blockExplorers: {
     default: {
