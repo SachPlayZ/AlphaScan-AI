@@ -11,3 +11,4 @@ rich
 Telethon
 uvicorn
 web3
+logging

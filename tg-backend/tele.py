@@ -1,3 +1,5 @@
+import logging
+import logging.handlers
 from datetime import datetime, UTC
 import os
 import asyncio
@@ -16,16 +18,44 @@ from pydantic_core import from_json
 from web3util import edu_balance, token_balance, buy_token, sell_token
 from rich import print
 
-load_dotenv()
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.handlers.RotatingFileHandler(
+            'app.log',
+            maxBytes=10485760,  # 10MB
+            backupCount=5
+        )
+    ]
+)
 
+logger = logging.getLogger(__name__)
+
+# Custom logging functions that use the configured logger
 def debug(msg):
+    logger.debug(msg)
     print(f"[bold blue][DEBUG][/bold blue] [white]{msg}[/white]")
 
+def info(msg):
+    logger.info(msg)
+    print(f"[bold green][INFO][/bold green] [white]{msg}[/white]")
+
+def warning(msg):
+    logger.warning(msg)
+    print(f"[bold yellow][WARNING][/bold yellow] [yellow]{msg}[/yellow]")
+
 def error(msg):
+    logger.error(msg)
     print(f"[bold red][ERROR][/bold red] [red]{msg}[/red]")
 
 def critical(msg):
+    logger.critical(msg)
     print(f"[bold white on red][CRITICAL][/bold white on red] [bold red]{msg}[/bold red]")
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -100,36 +130,64 @@ async def init_message_listener(
     try:
         # Check if client already exists for this user
         if user_id in message_listener_clients:
-            debug(f"Client already exists for user {user_id}, disconnecting old client")
+            info(f"Client already exists for user {user_id}, disconnecting old client")
             try:
                 await message_listener_clients[user_id].disconnect()
             except Exception as e:
                 error(f"Error disconnecting old client for {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to disconnect existing client: {str(e)}"
+                )
         
-        session = StringSession(session_string)
-        client = TelegramClient(session, api_id, api_hash)
+        try:
+            session = StringSession(session_string)
+            client = TelegramClient(session, api_id, api_hash)
+            await client.connect()
+            
+            if not await client.is_user_authorized():
+                warning(f"User {user_id} not authorized, disconnecting client")
+                await client.disconnect()
+                raise HTTPException(
+                    status_code=401,
+                    detail="User session not authorized"
+                )
 
-        await client.connect()
-        if not await client.is_user_authorized():
-            debug(f"User {user_id} not authorized, disconnecting client")
-            await client.disconnect()
-            return
+            @client.on(events.NewMessage(incoming=True))
+            async def handler(event):
+                try:
+                    if not event.is_private:
+                        return
+                    # reply = generate_reply(event.message.text)
+                    # await event.reply(reply)
+                except Exception as e:
+                    error(f"Error in message handler for user {user_id}: {str(e)}")
+                    # Don't raise the exception to keep the listener running
 
-        @client.on(events.NewMessage(incoming=True))
-        async def handler(event):
-            if not event.is_private:
-                return
-            # reply = generate_reply(event.message.text)
-            # await event.reply(reply)
-
-        # Store the client in the dictionary
-        message_listener_clients[user_id] = client
-        
-        # Run the client in the background
-        asyncio.create_task(client.run_until_disconnected())
-        debug(f"Message listener initialized for user {user_id}")
+            # Store the client in the dictionary
+            message_listener_clients[user_id] = client
+            
+            # Run the client in the background
+            asyncio.create_task(client.run_until_disconnected())
+            info(f"Message listener initialized for user {user_id}")
+            
+        except Exception as e:
+            error(f"Error setting up Telegram client for user {user_id}: {str(e)}")
+            if 'client' in locals() and client.is_connected():
+                await client.disconnect()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to initialize Telegram client: {str(e)}"
+            )
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        error(f"Error initializing listener for {user_id}: {str(e)}")
+        error(f"Unexpected error initializing listener for {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error during initialization: {str(e)}"
+        )
 
 
 async def get_user_client(user_id: str) -> TelegramClient:
@@ -492,133 +550,145 @@ def handle_watcher_task_done(task, watcher_key):
 
 async def watch_group_messages(user_id, group_id, topic_id=None):
     """Background task to watch for messages in a group/channel using a dedicated client"""
-    client = None  # Initialize client to None
+    client = None
+    watcher_key = f"{user_id}:{group_id}:{topic_id}"
+    
     try:
-        debug(
-            f"Starting watch_group_messages for user {user_id}, group {group_id}, topic {topic_id}"
-        )
+        info(f"Starting watch_group_messages for user {user_id}, group {group_id}, topic {topic_id}")
 
-        user = await db[COLLECTION_NAME].find_one({"user_id": user_id})
-        if not user:
-            error(f"User {user_id} not found for watcher")
+        # Get user data
+        try:
+            user = await db[COLLECTION_NAME].find_one({"user_id": user_id})
+            if not user:
+                error(f"User {user_id} not found for watcher")
+                return
+        except Exception as e:
+            error(f"Error fetching user data for watcher {watcher_key}: {str(e)}")
             return
 
-        debug(f"Found user {user_id} in database")
+        info(f"Found user {user_id} in database")
 
-        watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
-            {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
-        )
-
-        if not watch_entry:
-            error(f"Watch entry not found for {user_id}:{group_id}:{topic_id}")
+        # Get watch entry
+        try:
+            watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
+                {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
+            )
+            if not watch_entry:
+                error(f"Watch entry not found for {watcher_key}")
+                return
+        except Exception as e:
+            error(f"Error fetching watch entry for {watcher_key}: {str(e)}")
             return
 
-        debug(f"Found watch entry for group {watch_entry['group_name']}")
-        debug(f"Setting up DEDICATED client for user {user_id} to watch group {group_id}")
+        info(f"Found watch entry for group {watch_entry['group_name']}")
+        info(f"Setting up DEDICATED client for user {user_id} to watch group {group_id}")
 
-        # Create a new, dedicated client for this watcher instance
-        session = decrypt_data(user["session_string"])
-        client = TelegramClient(
-            StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
-        )
-        debug(f"Created dedicated client for watcher {user_id}:{group_id}:{topic_id}")
-
-        await client.connect()
-        if not await client.is_user_authorized():
-            debug(f"User {user_id} not authorized for watcher {group_id}")
-            await client.disconnect()
+        # Create and connect client
+        try:
+            session = decrypt_data(user["session_string"])
+            client = TelegramClient(
+                StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
+            )
+            await client.connect()
+            
+            if not await client.is_user_authorized():
+                warning(f"User {user_id} not authorized for watcher {group_id}")
+                await client.disconnect()
+                return
+        except Exception as e:
+            error(f"Error setting up client for watcher {watcher_key}: {str(e)}")
+            if client and client.is_connected():
+                await client.disconnect()
             return
-        
-        debug(f"Dedicated client connected and authorized for watcher {user_id}:{group_id}:{topic_id}")
 
-        # Create a unique event handler for this specific group/topic
+        info(f"Dedicated client connected and authorized for watcher {watcher_key}")
+
+        # Create message handler
         @client.on(events.NewMessage(chats=group_id))
         async def handler(event):
-            debug(f"New message event received for user {user_id} in group {group_id} (watcher)!")
             try:
-                # Check if the watcher should still be active before processing
-                watcher_key = f"{user_id}:{group_id}:{topic_id}"
+                # Check if watcher is still active
                 if watcher_key not in active_watchers:
-                    debug(f"Watcher {watcher_key} is no longer active, ignoring message.")
+                    info(f"Watcher {watcher_key} is no longer active, ignoring message.")
                     return
 
-                # Existing topic filtering logic...
+                # Topic filtering logic
                 if topic_id is not None:
-                    if (
-                        not hasattr(event.message, "reply_to")
-                        or event.message.reply_to is None
-                    ):
+                    if not hasattr(event.message, "reply_to") or event.message.reply_to is None:
                         debug("Message has no reply_to attribute or is None")
                         return
-                    if (
-                        not hasattr(event.message.reply_to, "forum_topic")
-                        or not event.message.reply_to.forum_topic
-                    ):
+                    if not hasattr(event.message.reply_to, "forum_topic") or not event.message.reply_to.forum_topic:
                         debug("Message is not in a forum topic")
                         return
                     
-                    # Fetch topic IDs dynamically within the handler to ensure freshness
                     current_topic_ids = await get_topic_ids(user_id)
                     if event.message.reply_to.reply_to_msg_id not in current_topic_ids:
-                        debug(
-                            f"Message topic ID {event.message.reply_to.reply_to_msg_id} not in watched topics for user {user_id}"
-                        )
+                        debug(f"Message topic ID {event.message.reply_to.reply_to_msg_id} not in watched topics for user {user_id}")
                         return
                 
-                # More specific check for topic ID match if topic_id is provided
                 if topic_id is not None and event.message.reply_to.reply_to_msg_id != topic_id:
                     debug(f"Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match specific watcher topic {topic_id}")
                     return
                 
-                # Fetch the correct watch entry based on group_id and potentially topic_id
-                current_watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
-                    {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
-                )
-                if not current_watch_entry:
-                    error(f"Watch entry not found for {user_id}:{group_id}:{topic_id} during message processing.")
+                # Get current watch entry
+                try:
+                    current_watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
+                        {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
+                    )
+                    if not current_watch_entry:
+                        error(f"Watch entry not found for {watcher_key} during message processing.")
+                        return
+                except Exception as e:
+                    error(f"Error fetching current watch entry for {watcher_key}: {str(e)}")
                     return
 
-                sender = await event.get_sender()
-                first_name = getattr(sender, "first_name", "") or ""
-                last_name = getattr(sender, "last_name", "") or ""
-                sender_name = f"{first_name} {last_name}"
-                sender_name = sender_name.strip() or sender.username or "Unknown"
-                
-                await process_message(
-                    current_watch_entry["group_name"],
-                    current_watch_entry["topic_name"],
-                    sender_name,
-                    event.message.text,
-                    user_id,
-                )
+                # Process sender info
+                try:
+                    sender = await event.get_sender()
+                    first_name = getattr(sender, "first_name", "") or ""
+                    last_name = getattr(sender, "last_name", "") or ""
+                    sender_name = f"{first_name} {last_name}"
+                    sender_name = sender_name.strip() or sender.username or "Unknown"
+                except Exception as e:
+                    error(f"Error processing sender info for message in {watcher_key}: {str(e)}")
+                    sender_name = "Unknown"
+
+                # Process message
+                try:
+                    await process_message(
+                        current_watch_entry["group_name"],
+                        current_watch_entry["topic_name"],
+                        sender_name,
+                        event.message.text,
+                        user_id,
+                    )
+                except Exception as e:
+                    error(f"Error processing message in {watcher_key}: {str(e)}")
 
             except Exception as e:
-                error(f"Error in message handler for watcher {user_id}:{group_id}:{topic_id}: {str(e)}")
+                error(f"Error in message handler for watcher {watcher_key}: {str(e)}")
 
-        debug(f"Event handler registered for dedicated watcher {user_id}:{group_id}:{topic_id}")
+        info(f"Event handler registered for dedicated watcher {watcher_key}")
         
         # Run the client until disconnected
         await client.run_until_disconnected()
-        debug(f"Watcher client {user_id}:{group_id}:{topic_id} disconnected.")
+        info(f"Watcher client {watcher_key} disconnected.")
 
     except asyncio.CancelledError:
-        debug(f"Watcher task for {user_id}:{group_id}:{topic_id} was cancelled.")
-        # Ensure client is disconnected on cancellation
+        info(f"Watcher task for {watcher_key} was cancelled.")
         if client and client.is_connected():
-            debug(f"Disconnecting client for cancelled watcher {user_id}:{group_id}:{topic_id}")
+            info(f"Disconnecting client for cancelled watcher {watcher_key}")
             await client.disconnect()
 
     except Exception as e:
-        critical(f"ERROR in watcher task {user_id}:{group_id}:{topic_id}: {str(e)}")
-        # Ensure client is disconnected on error
+        critical(f"ERROR in watcher task {watcher_key}: {str(e)}")
         if client and client.is_connected():
-            debug(f"Disconnecting client for failed watcher {user_id}:{group_id}:{topic_id}")
+            info(f"Disconnecting client for failed watcher {watcher_key}")
             await client.disconnect()
     finally:
-        # Final check for disconnection
         if client and client.is_connected():
-             await client.disconnect()
-        debug(f"Watcher task {user_id}:{group_id}:{topic_id} finished.")
+            await client.disconnect()
+        info(f"Watcher task {watcher_key} finished.")
 
 
 async def get_watch_entry(user_id: str, topic_id: int):
@@ -660,7 +730,7 @@ async def process_message(
         for message in overlap_messages:
             message["overlap"] = True
             queue[key].append(message)
-        await analyse_texts(last_10_messages, user_id)
+        asyncio.create_task(analyse_texts(last_10_messages, user_id))
 
 
 def generate(prompt: str):
@@ -853,17 +923,96 @@ async def get_token_history_endpoint(user_id: str):
 
 
 async def transaction_layer(token: Dict, user_id: str):
-    await store_token_transaction(user_id, token["token"])
-    if token["sentiment"] == "positive":
-        balance = edu_balance(user_id)["edu_balance"]
-        if balance > 0:
-            tx = buy_token(user_id, token["token"], balance * 0.6)
-            await log_action(f"Buy Token {token['token']}", token, tx, user_id)
-    elif token["sentiment"] == "negative":
-        balance = token_balance(user_id, token["token"])["token_balance"]
-        if balance > 0:
-            tx = sell_token(user_id, token["token"], balance)
-            await log_action(f"Sell Token {token['token']}", token, tx, user_id)
+    """Execute token transactions based on sentiment analysis"""
+    try:
+        info(f"Starting transaction layer for token {token['token']} and user {user_id}")
+        
+        # Store transaction history
+        try:
+            await store_token_transaction(user_id, token["token"])
+            info(f"Stored transaction history for token {token['token']} and user {user_id}")
+        except Exception as e:
+            error(f"Error storing transaction history for token {token['token']} and user {user_id}: {str(e)}")
+            # Continue with transaction even if history storage fails
+
+        if token["sentiment"] == "positive":
+            try:
+                balance = edu_balance(user_id)["edu_balance"]
+                info(f"EDU balance for user {user_id}: {balance}")
+                
+                if balance > 0:
+                    try:
+                        tx = buy_token(user_id, token["token"], balance * 0.6)
+                        info(f"Successfully bought {token['token']} for user {user_id}")
+                        await log_action(f"Buy Token {token['token']}", token, tx, user_id)
+                    except Exception as e:
+                        error(f"Error buying token {token['token']} for user {user_id}: {str(e)}")
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to buy token: {str(e)}"
+                        )
+                else:
+                    warning(f"Insufficient EDU balance for user {user_id} to buy {token['token']}")
+                    await log_action(
+                        "Check EDU Balance",
+                        token,
+                        "Insufficient EDU balance for purchase",
+                        user_id
+                    )
+            except Exception as e:
+                error(f"Error checking EDU balance for user {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to check EDU balance: {str(e)}"
+                )
+
+        elif token["sentiment"] == "negative":
+            try:
+                balance = token_balance(user_id, token["token"])["token_balance"]
+                info(f"Token balance for {token['token']} and user {user_id}: {balance}")
+                
+                if balance > 0:
+                    try:
+                        tx = sell_token(user_id, token["token"], balance)
+                        info(f"Successfully sold {token['token']} for user {user_id}")
+                        await log_action(f"Sell Token {token['token']}", token, tx, user_id)
+                    except Exception as e:
+                        error(f"Error selling token {token['token']} for user {user_id}: {str(e)}")
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to sell token: {str(e)}"
+                        )
+                else:
+                    warning(f"No {token['token']} balance for user {user_id} to sell")
+                    await log_action(
+                        "Check Token Balance",
+                        token,
+                        "No token balance available for sale",
+                        user_id
+                    )
+            except Exception as e:
+                error(f"Error checking token balance for {token['token']} and user {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to check token balance: {str(e)}"
+                )
+        else:
+            warning(f"Invalid sentiment {token['sentiment']} for token {token['token']}")
+            await log_action(
+                "Invalid Sentiment",
+                token,
+                f"Invalid sentiment {token['sentiment']}",
+                user_id
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error(f"Unexpected error in transaction layer for token {token['token']} and user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error during transaction: {str(e)}"
+        )
 
 
 def detect_trend(data):
