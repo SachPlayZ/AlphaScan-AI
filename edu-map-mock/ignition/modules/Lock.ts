@@ -1,9 +1,9 @@
 const hre = require("hardhat");
 
 async function main() {
-  const deployedContract = await hre.ethers.deployContract("DealToken");
+  const deployedContract = await hre.ethers.deployContract("Linking");
   await deployedContract.waitForDeployment();
-  console.log(`DealToken contract deployed to ${deployedContract.target}`);
+  console.log(`Linking contract deployed to ${deployedContract.target}`);
 }
 
 main().catch((error) => {

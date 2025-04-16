@@ -21,6 +21,10 @@ const config: HardhatUserConfig = {
       url: `https://rpc.edu-chain.raas.gelato.cloud`,
       accounts: [ACCOUNT_PRIVATE_KEY],
     },
+    "pharos-devnet": {
+      url: "https://devnet.dplabs-internal.com",
+      accounts: [ACCOUNT_PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: {
@@ -34,6 +38,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://edu-chain-testnet.blockscout.com/api",
           browserURL: "https://edu-chain-testnet.blockscout.com",
+        },
+      },
+      {
+        network: "pharos-devnet",
+        chainId: 50002,
+        urls: {
+          apiURL: "https://devnet.dplabs-internal.com/api",
+          browserURL: "https://devnet.dplabs-internal.com",
         },
       },
       {
