@@ -266,8 +266,10 @@ async def shutdown_event():
 
 @app.post("/init")
 async def initialize_user(request: UserInitRequest):
+    debug(f"Initializing user: {request.user_id}")
     existing = await db[COLLECTION_NAME].find_one({"user_id": request.user_id})
     if existing:
+        error(f"User already exists: {request.user_id}")
         raise HTTPException(status_code=400, detail="User already exists")
 
     client = TelegramClient(StringSession(), API_ID, API_HASH)
@@ -279,9 +281,11 @@ async def initialize_user(request: UserInitRequest):
             "client": client,
             "phone_code_hash": sent_code.phone_code_hash,
         }
+        debug(f"OTP sent to {request.phone}")
         return {"status": "OTP sent"}
     except Exception as e:
         await client.disconnect()
+        critical(f"Error sending OTP: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
