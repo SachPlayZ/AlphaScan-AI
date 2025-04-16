@@ -7,6 +7,7 @@ motor
 pydantic
 pydantic_core
 python-dotenv
+rich
 Telethon
 uvicorn
 web3

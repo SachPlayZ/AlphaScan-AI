@@ -14,8 +14,18 @@ from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 from pydantic_core import from_json
 from web3util import edu_balance, token_balance, buy_token, sell_token
+from rich import print
 
 load_dotenv()
+
+def debug(msg):
+    print(f"[bold blue][DEBUG][/bold blue] [white]{msg}[/white]")
+
+def error(msg):
+    print(f"[bold red][ERROR][/bold red] [red]{msg}[/red]")
+
+def critical(msg):
+    print(f"[bold white on red][CRITICAL][/bold white on red] [bold red]{msg}[/bold red]")
 
 app = FastAPI()
 
@@ -90,18 +100,18 @@ async def init_message_listener(
     try:
         # Check if client already exists for this user
         if user_id in message_listener_clients:
-            print(f"Client already exists for user {user_id}, disconnecting old client")
+            debug(f"Client already exists for user {user_id}, disconnecting old client")
             try:
                 await message_listener_clients[user_id].disconnect()
             except Exception as e:
-                print(f"Error disconnecting old client for {user_id}: {str(e)}")
+                error(f"Error disconnecting old client for {user_id}: {str(e)}")
         
         session = StringSession(session_string)
         client = TelegramClient(session, api_id, api_hash)
 
         await client.connect()
         if not await client.is_user_authorized():
-            print(f"User {user_id} not authorized, disconnecting client")
+            debug(f"User {user_id} not authorized, disconnecting client")
             await client.disconnect()
             return
 
@@ -117,9 +127,9 @@ async def init_message_listener(
         
         # Run the client in the background
         asyncio.create_task(client.run_until_disconnected())
-        print(f"Message listener initialized for user {user_id}")
+        debug(f"Message listener initialized for user {user_id}")
     except Exception as e:
-        print(f"Error initializing listener for {user_id}: {str(e)}")
+        error(f"Error initializing listener for {user_id}: {str(e)}")
 
 
 async def get_user_client(user_id: str) -> TelegramClient:
@@ -134,7 +144,7 @@ async def get_user_client(user_id: str) -> TelegramClient:
                 if not await client.is_user_authorized():
                     raise HTTPException(status_code=401, detail="Session expired")
             except Exception as e:
-                print(f"Error reconnecting client for {user_id}: {str(e)}")
+                error(f"Error reconnecting client for {user_id}: {str(e)}")
                 # Remove the invalid client
                 del message_listener_clients[user_id]
                 # Create a new client
@@ -174,12 +184,12 @@ async def create_new_client(user_id: str) -> TelegramClient:
 @app.on_event("startup")
 async def startup_event():
     """Start message listeners for all existing users on startup"""
-    print("Starting application...")
+    debug("Starting application...")
 
-    print("Initializing message listeners for existing users...")
+    debug("Initializing message listeners for existing users...")
     async for user in db[COLLECTION_NAME].find():
         try:
-            print(f"Setting up listener for user {user['user_id']}")
+            debug(f"Setting up listener for user {user['user_id']}")
             api_id = user["api_id"]
             api_hash = decrypt_data(user["api_hash"])
             session_string = decrypt_data(user["session_string"])
@@ -187,15 +197,15 @@ async def startup_event():
                 user["user_id"], api_id, api_hash, session_string
             )
         except Exception as e:
-            print(f"Failed to initialize listener for {user['user_id']}: {str(e)}")
+            error(f"Failed to initialize listener for {user['user_id']}: {str(e)}")
 
-    print("Initializing group watchers...")
+    debug("Initializing group watchers...")
     try:
         # Group watch entries by user_id for better organization
         user_watch_entries = {}
         cursor = db[WATCHED_GROUPS_COLLECTION].find({})
         watch_entries = await cursor.to_list(None)
-        print(f"Found {len(watch_entries)} watch entries to initialize")
+        debug(f"Found {len(watch_entries)} watch entries to initialize")
 
         # Group entries by user_id
         for entry in watch_entries:
@@ -206,52 +216,52 @@ async def startup_event():
 
         # Initialize watchers for each user in parallel
         for user_id, entries in user_watch_entries.items():
-            print(f"Initializing watchers for user {user_id} with {len(entries)} groups")
+            debug(f"Initializing watchers for user {user_id} with {len(entries)} groups")
             for entry in entries:
                 try:
-                    print(
+                    debug(
                         f"Starting watcher for group {entry['group_name']} (ID: {entry['group_id']})"
                     )
                     await start_group_watcher(
                         entry["user_id"], entry["group_id"], entry.get("topic_id")
                     )
                 except Exception as e:
-                    print(f"Failed to start watcher for {entry['group_name']}: {str(e)}")
+                    error(f"Failed to start watcher for {entry['group_name']}: {str(e)}")
 
     except Exception as e:
-        print(f"Error restarting watchers: {str(e)}")
+        error(f"Error restarting watchers: {str(e)}")
 
-    print("Startup process completed")
+    debug("Startup process completed")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Disconnect all message listeners on shutdown"""
-    print("Shutting down application...")
+    debug("Shutting down application...")
     
     # Cancel all active watchers
-    print(f"Cancelling {len(active_watchers)} active watchers")
+    debug(f"Cancelling {len(active_watchers)} active watchers")
     for watcher_key, task in active_watchers.items():
         try:
-            print(f"Cancelling watcher {watcher_key}")
+            debug(f"Cancelling watcher {watcher_key}")
             task.cancel()
         except Exception as e:
-            print(f"Error cancelling watcher {watcher_key}: {str(e)}")
+            error(f"Error cancelling watcher {watcher_key}: {str(e)}")
     
     # Wait for all tasks to be cancelled
     if active_watchers:
         await asyncio.sleep(2)  # Give tasks time to cancel
     
     # Disconnect all clients
-    print(f"Disconnecting {len(message_listener_clients)} message listener clients")
+    debug(f"Disconnecting {len(message_listener_clients)} message listener clients")
     for user_id, client in message_listener_clients.items():
         try:
-            print(f"Disconnecting client for user {user_id}")
+            debug(f"Disconnecting client for user {user_id}")
             await client.disconnect()
         except Exception as e:
-            print(f"Error disconnecting client for user {user_id}: {str(e)}")
+            error(f"Error disconnecting client for user {user_id}: {str(e)}")
     
-    print("Shutdown complete")
+    debug("Shutdown complete")
 
 
 @app.post("/init")
@@ -362,8 +372,8 @@ async def watch_group(request: WatchGroupRequest):
             upsert=True,
         )
 
-        if request.webhook_url:
-            await start_group_watcher(request.user_id, found_entity.id, found_topic_id)
+        # Always start the watcher after adding/updating the entry
+        await start_group_watcher(request.user_id, found_entity.id, found_topic_id)
 
         await client.disconnect()
 
@@ -392,7 +402,7 @@ async def get_watched_groups(user_id: str):
         return {"watched_groups": watched_groups}
 
     except Exception as e:
-        print(f"Error getting watched groups: {str(e)}")
+        error(f"Error getting watched groups: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -433,27 +443,27 @@ async def unwatch_group(user_id: str, group_id: int, topic_id: int = None):
 async def start_group_watcher(user_id, group_id, topic_id=None):
     """Start a background task to watch a group/channel for messages"""
     watcher_key = f"{user_id}:{group_id}:{topic_id}"
-    print(f"Starting group watcher with key: {watcher_key}")
+    debug(f"Starting group watcher with key: {watcher_key}")
 
     # Cancel existing watcher if it exists
     if watcher_key in active_watchers:
-        print(f"Cancelling existing watcher for {watcher_key}")
+        debug(f"Cancelling existing watcher for {watcher_key}")
         try:
             active_watchers[watcher_key].cancel()
             await asyncio.sleep(1)  # Give the task time to cancel
         except Exception as e:
-            print(f"Error cancelling watcher {watcher_key}: {str(e)}")
+            error(f"Error cancelling watcher {watcher_key}: {str(e)}")
         del active_watchers[watcher_key]
 
     # Create a new watcher task
-    print(f"Creating new watcher task for {watcher_key}")
+    debug(f"Creating new watcher task for {watcher_key}")
     task = asyncio.create_task(watch_group_messages(user_id, group_id, topic_id))
     active_watchers[watcher_key] = task
     
     # Add error handling for the task
     task.add_done_callback(lambda t: handle_watcher_task_done(t, watcher_key))
     
-    print(f"Watcher task created and stored for {watcher_key}")
+    debug(f"Watcher task created and stored for {watcher_key}")
     return task
 
 
@@ -462,126 +472,155 @@ def handle_watcher_task_done(task, watcher_key):
     try:
         # Check if the task was cancelled
         if task.cancelled():
-            print(f"Watcher task {watcher_key} was cancelled")
+            debug(f"Watcher task {watcher_key} was cancelled")
             return
         
         # Check if there was an exception
         exc = task.exception()
         if exc:
-            print(f"Watcher task {watcher_key} failed with exception: {str(exc)}")
+            error(f"Watcher task {watcher_key} failed with exception: {str(exc)}")
             # Remove the failed watcher from active_watchers
             if watcher_key in active_watchers:
                 del active_watchers[watcher_key]
     except Exception as e:
-        print(f"Error handling watcher task completion for {watcher_key}: {str(e)}")
+        error(f"Error handling watcher task completion for {watcher_key}: {str(e)}")
 
 
 async def watch_group_messages(user_id, group_id, topic_id=None):
-    """Background task to watch for messages in a group/channel"""
+    """Background task to watch for messages in a group/channel using a dedicated client"""
+    client = None  # Initialize client to None
     try:
-        print(
+        debug(
             f"Starting watch_group_messages for user {user_id}, group {group_id}, topic {topic_id}"
         )
 
         user = await db[COLLECTION_NAME].find_one({"user_id": user_id})
         if not user:
-            print(f"User {user_id} not found for watcher")
+            error(f"User {user_id} not found for watcher")
             return
 
-        print(f"Found user {user_id} in database")
+        debug(f"Found user {user_id} in database")
 
         watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
             {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
         )
 
         if not watch_entry:
-            print(f"Watch entry not found for {user_id}:{group_id}:{topic_id}")
+            error(f"Watch entry not found for {user_id}:{group_id}:{topic_id}")
             return
 
-        print(f"Found watch entry for group {watch_entry['group_name']}")
-        print(f"Setting up client for user {user_id} to watch group {group_id}")
+        debug(f"Found watch entry for group {watch_entry['group_name']}")
+        debug(f"Setting up DEDICATED client for user {user_id} to watch group {group_id}")
 
-        # Use the existing client if available, otherwise create a new one
-        client = None
-        if user_id in message_listener_clients:
-            client = message_listener_clients[user_id]
-            print(f"Using existing client for user {user_id}")
-        else:
-            session = decrypt_data(user["session_string"])
-            client = TelegramClient(
-                StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
-            )
-            print(f"Created new client for user {user_id}")
-            await client.connect()
-            if not await client.is_user_authorized():
-                print(f"User {user_id} not authorized for watcher")
-                await client.disconnect()
-                return
-            message_listener_clients[user_id] = client
+        # Create a new, dedicated client for this watcher instance
+        session = decrypt_data(user["session_string"])
+        client = TelegramClient(
+            StringSession(session), user["api_id"], decrypt_data(user["api_hash"])
+        )
+        debug(f"Created dedicated client for watcher {user_id}:{group_id}:{topic_id}")
+
+        await client.connect()
+        if not await client.is_user_authorized():
+            debug(f"User {user_id} not authorized for watcher {group_id}")
+            await client.disconnect()
+            return
+        
+        debug(f"Dedicated client connected and authorized for watcher {user_id}:{group_id}:{topic_id}")
 
         # Create a unique event handler for this specific group/topic
         @client.on(events.NewMessage(chats=group_id))
         async def handler(event):
-            print(f"DEBUG: New message event received for user {user_id} in group {group_id}!")
+            debug(f"New message event received for user {user_id} in group {group_id} (watcher)!")
             try:
+                # Check if the watcher should still be active before processing
+                watcher_key = f"{user_id}:{group_id}:{topic_id}"
+                if watcher_key not in active_watchers:
+                    debug(f"Watcher {watcher_key} is no longer active, ignoring message.")
+                    return
+
+                # Existing topic filtering logic...
                 if topic_id is not None:
+                    debug(f"FUCKING TOPIC ID {topic_id}")
                     if (
                         not hasattr(event.message, "reply_to")
                         or event.message.reply_to is None
                     ):
-                        print("DEBUG: Message has no reply_to attribute or is None")
+                        debug("Message has no reply_to attribute or is None")
                         return
                     if (
                         not hasattr(event.message.reply_to, "forum_topic")
                         or not event.message.reply_to.forum_topic
                     ):
-                        print("DEBUG: Message is not in a forum topic")
+                        debug("Message is not in a forum topic")
                         return
-                    topic_ids = await get_topic_ids(user_id)
-                    if event.message.reply_to.reply_to_msg_id not in topic_ids:
-                        print(
-                            f"DEBUG: Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match expected {topic_id}"
+                    
+                    # Fetch topic IDs dynamically within the handler to ensure freshness
+                    current_topic_ids = await get_topic_ids(user_id)
+                    debug(f"{event.message.reply_to.reply_to_msg_id} {current_topic_ids} {event.message.reply_to}")
+                    if event.message.reply_to.reply_to_msg_id not in current_topic_ids:
+                        debug(
+                            f"Message topic ID {event.message.reply_to.reply_to_msg_id} not in watched topics for user {user_id}"
                         )
                         return
+                
+                # More specific check for topic ID match if topic_id is provided
+                if topic_id is not None and event.message.reply_to.reply_to_msg_id != topic_id:
+                    debug(f"Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match specific watcher topic {topic_id}")
+                    return
 
-                topicId = event.message.reply_to.reply_to_msg_id
-                watch_entry = await get_watch_entry(user_id, topicId)
+
+                # Process the message
+                topicId = event.message.reply_to.reply_to_msg_id if topic_id is not None else None
+                
+                # Fetch the correct watch entry based on group_id and potentially topic_id
+                current_watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
+                    {"user_id": user_id, "group_id": group_id, "topic_id": topic_id}
+                )
+                if not current_watch_entry:
+                    error(f"Watch entry not found for {user_id}:{group_id}:{topic_id} during message processing.")
+                    return
+
                 sender = await event.get_sender()
                 first_name = getattr(sender, "first_name", "") or ""
                 last_name = getattr(sender, "last_name", "") or ""
                 sender_name = f"{first_name} {last_name}"
                 sender_name = sender_name.strip() or sender.username or "Unknown"
+                
                 await process_message(
-                    watch_entry["group_name"],
-                    watch_entry["topic_name"],
+                    current_watch_entry["group_name"],
+                    current_watch_entry["topic_name"],
                     sender_name,
                     event.message.text,
                     user_id,
                 )
 
             except Exception as e:
-                print(f"Error in message handler for user {user_id}: {str(e)}")
+                error(f"Error in message handler for watcher {user_id}:{group_id}:{topic_id}: {str(e)}")
 
-        print(f"DEBUG: Event handler registered for user {user_id}, group {group_id}")
+        debug(f"Event handler registered for dedicated watcher {user_id}:{group_id}:{topic_id}")
         
-        # Keep the watcher running
-        while True:
-            await asyncio.sleep(3600)  # Sleep for an hour to keep the task alive
-            # Check if the watcher should be stopped
-            watcher_key = f"{user_id}:{group_id}:{topic_id}"
-            if watcher_key not in active_watchers:
-                print(f"Watcher {watcher_key} no longer in active_watchers, stopping")
-                break
+        # Run the client until disconnected
+        await client.run_until_disconnected()
+        debug(f"Watcher client {user_id}:{group_id}:{topic_id} disconnected.")
 
     except asyncio.CancelledError:
-        print(f"Watcher for {user_id}:{group_id}:{topic_id} cancelled")
-        if "client" in locals() and client.is_connected():
+        debug(f"Watcher task for {user_id}:{group_id}:{topic_id} was cancelled.")
+        # Ensure client is disconnected on cancellation
+        if client and client.is_connected():
+            debug(f"Disconnecting client for cancelled watcher {user_id}:{group_id}:{topic_id}")
             await client.disconnect()
 
     except Exception as e:
-        print(f"Error in watcher {user_id}:{group_id}:{topic_id}: {str(e)}")
-        if "client" in locals() and client.is_connected():
+        critical(f"ERROR in watcher task {user_id}:{group_id}:{topic_id}: {str(e)}")
+        # Ensure client is disconnected on error
+        if client and client.is_connected():
+            debug(f"Disconnecting client for failed watcher {user_id}:{group_id}:{topic_id}")
             await client.disconnect()
+    finally:
+        # Final check for disconnection
+        if client and client.is_connected():
+             await client.disconnect()
+        debug(f"Watcher task {user_id}:{group_id}:{topic_id} finished.")
 
 
 async def get_watch_entry(user_id: str, topic_id: int):
@@ -601,8 +640,10 @@ async def process_message(
 ):
     global queue
 
-    queue[topic_name] = queue.get(topic_name, [])
-    queue[topic_name].append(
+    key = f"{group_name}:{topic_name}" if topic_name is not None else group_name
+
+    queue[key] = queue.get(key, [])
+    queue[key].append(
         {
             "group_name": group_name,
             "topic_name": topic_name,
@@ -612,14 +653,15 @@ async def process_message(
             "overlap": False,
         }
     )
-    print("Message received:", message_text)
-    if len(queue[topic_name]) == 10:
-        last_10_messages = queue[topic_name]
-        queue[topic_name] = []
+    # print("Message received:", message_text)
+    # print("Queue:", queue)
+    if len(queue[key]) == 10:
+        last_10_messages = queue[key]
+        queue[key] = []
         overlap_messages = last_10_messages[-3:]
         for message in overlap_messages:
             message["overlap"] = True
-            queue[topic_name].append(message)
+            queue[key].append(message)
         await analyse_texts(last_10_messages, user_id)
 
 
@@ -650,7 +692,7 @@ def generate(prompt: str):
             retry_count += 1
             if retry_count == max_retries:
                 raise Exception(f"Failed after {max_retries} retries: {str(e)}")
-            print(f"Attempt {retry_count} failed, retrying...")
+            debug(f"Attempt {retry_count} failed, retrying...")
 
 
 def get_eth_balance(user_id: str) -> bool:
@@ -683,11 +725,11 @@ async def log_action(action: str, input_data: Any, output_data: Any, user_id: st
 
         await db["logs"].insert_one(log_entry)
     except Exception as e:
-        print(f"Error logging action: {str(e)}")
+        error(f"Error logging action: {str(e)}")
 
 
 async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
-    print("Analyzing texts")
+    debug("Analyzing texts")
     tg_alpha = get_alpha(queue)
     await log_action("Get Alpha from Group Texts", queue, tg_alpha, user_id)
     if len(tg_alpha) == 0:
@@ -791,7 +833,7 @@ async def store_token_transaction(user_id: str, token_symbol: str):
             )
 
     except Exception as e:
-        print(f"Error storing token transaction: {str(e)}")
+        error(f"Error storing token transaction: {str(e)}")
 
 
 async def get_token_history(user_id: str) -> List[str]:
@@ -1187,7 +1229,7 @@ async def verify_otp(request: VerifyOTPRequest):
             phone_code_hash=temp_data["phone_code_hash"],
         )
     except Exception as e:
-        print(f"Error signing in: {str(e)}")
+        error(f"Error signing in: {str(e)}")
         await client.disconnect()
         del temp_clients[request.user_id]
         raise HTTPException(status_code=401, detail="Invalid OTP")
@@ -1217,16 +1259,16 @@ async def verify_otp(request: VerifyOTPRequest):
         watch_entries = await cursor.to_list(None)
         
         if watch_entries:
-            print(f"Initializing {len(watch_entries)} watched groups for new user {request.user_id}")
+            debug(f"Initializing {len(watch_entries)} watched groups for new user {request.user_id}")
             for entry in watch_entries:
                 try:
                     await start_group_watcher(
                         entry["user_id"], entry["group_id"], entry.get("topic_id")
                     )
                 except Exception as e:
-                    print(f"Failed to start watcher for new user {request.user_id}, group {entry['group_name']}: {str(e)}")
+                    error(f"Failed to start watcher for new user {request.user_id}, group {entry['group_name']}: {str(e)}")
     except Exception as e:
-        print(f"Failed to initialize services for new user {request.user_id}: {str(e)}")
+        error(f"Failed to initialize services for new user {request.user_id}: {str(e)}")
 
     await client.disconnect()
     del temp_clients[request.user_id]
