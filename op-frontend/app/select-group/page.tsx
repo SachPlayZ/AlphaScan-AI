@@ -116,11 +116,27 @@ export default function SelectGroupPage() {
   const { toast } = useToast();
 
   const getGroups = async () => {
-    const response = await fetch(
-      `http://localhost:8000/user-groups/${address}`
-    );
-    const data = await response.json();
-    setDemoGroups(data);
+    try {
+      const response = await fetch(
+        `http://localhost:8000/user-groups/${address}`
+      );
+      const data = await response.json();
+      // Ensure the data has the correct structure
+      setDemoGroups({
+        regular_groups: Array.isArray(data.regular_groups)
+          ? data.regular_groups
+          : [],
+        supergroups: Array.isArray(data.supergroups) ? data.supergroups : [],
+        channels: Array.isArray(data.channels) ? data.channels : [],
+      });
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch groups. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
@@ -176,8 +192,27 @@ export default function SelectGroupPage() {
     }
   };
 
-  // Combine all groups for display
-  const allGroups = [...demoGroups.regular_groups, ...demoGroups.supergroups];
+  // Combine all groups for display, ensuring arrays exist before spreading
+  const allGroups = [
+    ...(demoGroups?.regular_groups || []),
+    ...(demoGroups?.supergroups || []),
+  ];
+
+  // Add a check for empty groups
+  if (allGroups.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <Toaster />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold">No groups available</h2>
+            <p className="text-muted-foreground mt-2">Please try again later</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
