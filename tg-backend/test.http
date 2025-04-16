@@ -14,12 +14,12 @@ Content-Type: application/json
     "otp_code": "94025"
 }
 
-POST http://0.0.0.0:8000/send-message?user_id=test1
+POST http://0.0.0.0:8000/send-message?user_id=0xd778E456F0CcB2D35C84c057e65dD62534bC3b77
 Content-Type: application/json
 
 {
-    "recipient": "recipient_username",
-    "message": "test"
+    "recipient": "",
+    "message": "Nigga i love you i want to fill every part of your body with my cum"
 }
 
 GET http://0.0.0.0:8000/user-groups/test1

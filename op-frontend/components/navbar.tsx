@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { BrainCircuit } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-
+import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
 export function Navbar() {
+  const { address } = useAccount();
+  const router = useRouter();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -25,6 +28,14 @@ export function Navbar() {
         </div>
         <div className="flex flex-1 items-center justify-end">
           <nav className="flex items-center space-x-6">
+            {address && (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                Dashboard
+              </button>
+            )}
             <button
               onClick={() => scrollToSection("features")}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
