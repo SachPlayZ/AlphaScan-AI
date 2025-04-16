@@ -14,7 +14,6 @@ import {
   ShoppingCart,
   Trash,
   RefreshCcw,
-  Copy,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import {
@@ -55,14 +54,12 @@ export default function AgentActionsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [agentActions, setAgentActions] = useState<AgentAction[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
-
   useEffect(() => {
     if (!address) return;
     const fetchLogs = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/get-logs/${address}`
+          `https://alphascan-ai.onrender.com/get-logs/${address}`
         ); // Replace with actual user ID
         if (!response.ok) {
           throw new Error("Failed to fetch logs");
@@ -226,12 +223,6 @@ export default function AgentActionsPage() {
       default:
         return "bg-gray-500/20 text-gray-500";
     }
-  };
-
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
   };
 
   return (

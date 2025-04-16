@@ -118,7 +118,7 @@ export default function SelectGroupPage() {
   const getGroups = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/user-groups/${address}`
+        `https://alphascan-ai.onrender.com/user-groups/${address}`
       );
       const data = await response.json();
       // Ensure the data has the correct structure
@@ -164,7 +164,7 @@ export default function SelectGroupPage() {
       ) {
         return;
       }
-      const response = await fetch(`http://localhost:8000/watch-group`, {
+      const response = await fetch(`https://alphascan-ai.onrender.com/watch-group`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
