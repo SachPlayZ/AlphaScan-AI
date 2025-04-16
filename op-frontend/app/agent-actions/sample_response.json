@@ -1,0 +1,571 @@
+[
+  {
+    "_id": "67fff6ffa75e036dad3d6f6e",
+    "timestamp": "2025-04-16T18:29:19.627000",
+    "action": "Get Alpha from Group Texts",
+    "input": [
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Sachindra",
+        "message_text": "Shake your belly bum bum",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "broooo DEAL and ALT are going to the moonnnn",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "we are making MILLIONS WITH THIS ONE",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Sachindra",
+        "message_text": "Yeah seeing the graph go so high made me cum",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "we are gonna be so rich",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Sachindra",
+        "message_text": "Yeah for sure, I'm buying more DEAL",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "I will no longer have to buy jangiya and sando genji for my girl",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": false
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "I WILL BE ABLE TO AFFORD PANTIES AND BRASSSSS",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": true
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Sachindra",
+        "message_text": "Fuck yeah, also afford ALT",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": true
+      },
+      {
+        "group_name": "web3 testing",
+        "topic_name": "test2",
+        "sender_name": "Arnoob",
+        "message_text": "yayy im buying more ALT rnnn",
+        "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75",
+        "overlap": true
+      }
+    ],
+    "output": [
+      {
+        "token": "DEAL",
+        "texts": [
+          "broooo DEAL and ALT are going to the moonnnn",
+          "Yeah for sure, I'm buying more DEAL",
+          "Fuck yeah, also afford ALT",
+          "yayy im buying more ALT rnnn"
+        ],
+        "sentiment": "positive",
+        "confidence": 0.9
+      },
+      {
+        "token": "ALT",
+        "texts": [
+          "broooo DEAL and ALT are going to the moonnnn",
+          "Fuck yeah, also afford ALT",
+          "yayy im buying more ALT rnnn"
+        ],
+        "sentiment": "positive",
+        "confidence": 0.9
+      }
+    ],
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff6ffa75e036dad3d6f6f",
+    "timestamp": "2025-04-16T18:29:19.630000",
+    "action": "Analyse Each Alpha",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": "Analyzing alpha",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff6ffa75e036dad3d6f70",
+    "timestamp": "2025-04-16T18:29:19.631000",
+    "action": "Check EDU Balance [Alpha is positive so we need to buy using EDU]",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": "Checking EDU balance",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff70da75e036dad3d6f71",
+    "timestamp": "2025-04-16T18:29:33.890000",
+    "action": "Get Tweets",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": [
+      "Ever wish crypto could be a 50% off sale? Meet #DEAL token—because even in blockchain, good deals exist! 💰Coupon codes not required.",
+      "DEAL token: Not just a crypto name, it’s destiny. Because life’s too short for overpriced transactions. 🌟",
+      "Why settle for one DE... when you can have DEAL? ⚡ Crypto logic at its finest.",
+      "Holding DEAL isn’t greed—it’s being a smart negotiator with blockchain flair. 💡 #CryptoWisdom",
+      "DEAL token: The blockchain’s answer to ‘too good to be true’—but it’s totally real! 🚀 So real it’s worth buying.",
+      "Calling all crypto bargain hunters: #DEAL is the flea market of the blockchain world. 🔍 Find treasures… and maybe some questionable socks.",
+      "DEAL or no DEAL? The crypto equivalent is here—#DEAL token! 🎯 Play smart, win big. (Unlike those game show envelopes.)",
+      "DEAL token: The only crypto coin that’ll make you feel like you just outsmarted the Bitcoin overlords. 😈微量逆袭",
+      "Why’s #DEAL token special? It’s the first crypto to promise no FOMO. Ever. 🤷♂️ (Probably.)",
+      "DEAL token’s value? A mix of luck, timing, and maybe a hint of magic. (Disclaimer: No actual magic involved.) 🪄 But seriously, it’s good."
+    ],
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff712a75e036dad3d6f72",
+    "timestamp": "2025-04-16T18:29:38.494000",
+    "action": "Analyse Tweets",
+    "input": {
+      "token": "DEAL",
+      "tweets": [
+        "Ever wish crypto could be a 50% off sale? Meet #DEAL token—because even in blockchain, good deals exist! 💰Coupon codes not required.",
+        "DEAL token: Not just a crypto name, it’s destiny. Because life’s too short for overpriced transactions. 🌟",
+        "Why settle for one DE... when you can have DEAL? ⚡ Crypto logic at its finest.",
+        "Holding DEAL isn’t greed—it’s being a smart negotiator with blockchain flair. 💡 #CryptoWisdom",
+        "DEAL token: The blockchain’s answer to ‘too good to be true’—but it’s totally real! 🚀 So real it’s worth buying.",
+        "Calling all crypto bargain hunters: #DEAL is the flea market of the blockchain world. 🔍 Find treasures… and maybe some questionable socks.",
+        "DEAL or no DEAL? The crypto equivalent is here—#DEAL token! 🎯 Play smart, win big. (Unlike those game show envelopes.)",
+        "DEAL token: The only crypto coin that’ll make you feel like you just outsmarted the Bitcoin overlords. 😈微量逆袭",
+        "Why’s #DEAL token special? It’s the first crypto to promise no FOMO. Ever. 🤷♂️ (Probably.)",
+        "DEAL token’s value? A mix of luck, timing, and maybe a hint of magic. (Disclaimer: No actual magic involved.) 🪄 But seriously, it’s good."
+      ]
+    },
+    "output": "positive",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff712a75e036dad3d6f73",
+    "timestamp": "2025-04-16T18:29:38.497000",
+    "action": "Validation Layer Passed",
+    "input": {
+      "token": "DEAL",
+      "tweets": [
+        "Ever wish crypto could be a 50% off sale? Meet #DEAL token—because even in blockchain, good deals exist! 💰Coupon codes not required.",
+        "DEAL token: Not just a crypto name, it’s destiny. Because life’s too short for overpriced transactions. 🌟",
+        "Why settle for one DE... when you can have DEAL? ⚡ Crypto logic at its finest.",
+        "Holding DEAL isn’t greed—it’s being a smart negotiator with blockchain flair. 💡 #CryptoWisdom",
+        "DEAL token: The blockchain’s answer to ‘too good to be true’—but it’s totally real! 🚀 So real it’s worth buying.",
+        "Calling all crypto bargain hunters: #DEAL is the flea market of the blockchain world. 🔍 Find treasures… and maybe some questionable socks.",
+        "DEAL or no DEAL? The crypto equivalent is here—#DEAL token! 🎯 Play smart, win big. (Unlike those game show envelopes.)",
+        "DEAL token: The only crypto coin that’ll make you feel like you just outsmarted the Bitcoin overlords. 😈微量逆袭",
+        "Why’s #DEAL token special? It’s the first crypto to promise no FOMO. Ever. 🤷♂️ (Probably.)",
+        "DEAL token’s value? A mix of luck, timing, and maybe a hint of magic. (Disclaimer: No actual magic involved.) 🪄 But seriously, it’s good."
+      ],
+      "sentiment": "positive",
+      "expected_sentiment": "positive"
+    },
+    "output": "Sentiment matches",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff712a75e036dad3d6f74",
+    "timestamp": "2025-04-16T18:29:38.499000",
+    "action": "Get Historical Data",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "prices": [
+        58.87212812958444, 60.57587168434204, 62.347655430361286,
+        63.8109030365774, 65.35489246576384, 65.94343645587026,
+        66.64477330332613, 67.84267271976111, 68.50904956992358,
+        69.21665007369096
+      ],
+      "market_caps": [
+        41320794.00136471, 42684553.64936828, 44008480.59840392,
+        45275860.468011, 46482634.787400596, 47046450.225304216,
+        47634210.90117939, 48696169.01421995, 49272878.41486197,
+        49867230.98991586
+      ],
+      "total_volumes": [
+        701873.6253327349, 704646.1315785176, 705856.2233756945,
+        709531.7306833626, 711234.2019650713, 713436.4351300979,
+        714747.8870455103, 717780.8164393824, 719217.077512829, 720451.378921475
+      ]
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff712a75e036dad3d6f75",
+    "timestamp": "2025-04-16T18:29:38.501000",
+    "action": "Detect Trends",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "prices": "positive",
+      "market_caps": "positive",
+      "total_volumes": "positive"
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff712a75e036dad3d6f76",
+    "timestamp": "2025-04-16T18:29:38.505000",
+    "action": "Get PNL Potential",
+    "input": {
+      "token": {
+        "token": "DEAL",
+        "texts": [
+          "broooo DEAL and ALT are going to the moonnnn",
+          "Yeah for sure, I'm buying more DEAL",
+          "Fuck yeah, also afford ALT",
+          "yayy im buying more ALT rnnn"
+        ],
+        "sentiment": "positive",
+        "confidence": 0.9
+      },
+      "historical_data": {
+        "prices": [
+          58.87212812958444, 60.57587168434204, 62.347655430361286,
+          63.8109030365774, 65.35489246576384, 65.94343645587026,
+          66.64477330332613, 67.84267271976111, 68.50904956992358,
+          69.21665007369096
+        ],
+        "market_caps": [
+          41320794.00136471, 42684553.64936828, 44008480.59840392,
+          45275860.468011, 46482634.787400596, 47046450.225304216,
+          47634210.90117939, 48696169.01421995, 49272878.41486197,
+          49867230.98991586
+        ],
+        "total_volumes": [
+          701873.6253327349, 704646.1315785176, 705856.2233756945,
+          709531.7306833626, 711234.2019650713, 713436.4351300979,
+          714747.8870455103, 717780.8164393824, 719217.077512829,
+          720451.378921475
+        ]
+      }
+    },
+    "output": 16.09532920891816,
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff71ba75e036dad3d6f78",
+    "timestamp": "2025-04-16T18:29:47.086000",
+    "action": "Buy Token DEAL",
+    "input": {
+      "token": "DEAL",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Yeah for sure, I'm buying more DEAL",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "transaction_hash": "74552f3f491056c3f37302b9e8a3747dadd6c9268bd4625267d05367f30ae465",
+      "status": 1,
+      "gas_used": 4961133,
+      "token_ticker": "DEAL"
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff71ba75e036dad3d6f79",
+    "timestamp": "2025-04-16T18:29:47.089000",
+    "action": "Analyse Each Alpha",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": "Analyzing alpha",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff71ba75e036dad3d6f7a",
+    "timestamp": "2025-04-16T18:29:47.091000",
+    "action": "Check EDU Balance [Alpha is positive so we need to buy using EDU]",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": "Checking EDU balance",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff722a75e036dad3d6f7b",
+    "timestamp": "2025-04-16T18:29:54.455000",
+    "action": "Get Tweets",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": [
+      "ALT is soaring high! 🚀 Can't keep up? Let the token carry you. #StayAfloat",
+      "ALT – where every digit dances to success! 💻🎶 (Disclaimer: Digits do not actually move, but the price might.)",
+      "Warning: ALT is so smooth, even your grandma might trade crypto. Proceed with caution. 👵💥",
+      "Why did the ALT token refuse treatment? Because it already had a stable condition! 💊✨",
+      "ALT’s volatility: Now with a side of pizza. 🍕 How much? Ask the market.",
+      "ALT’s secret superpower? Disappearing fees. 🦸♂️ (Don’t blink.)",
+      "ALT: Splitting the crypto atom (responsibly, of course).) 🌌 Physics be crazy, but so are prices!",
+      "ALT – because “alt” isn’t just a word, it’s a lifestyle. 🌍✨",
+      "Today's lesson: Even ALT can’t solve gravity. 📉 (But it’s trying hard) #AltDownMoment",
+      "Why worry? ALT’s got you covered… or doesn’t? 🤷♂️ Who even knows with crypto? 😎 #AltMagic"
+    ],
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff734a75e036dad3d6f7c",
+    "timestamp": "2025-04-16T18:30:12.499000",
+    "action": "Analyse Tweets",
+    "input": {
+      "token": "ALT",
+      "tweets": [
+        "ALT is soaring high! 🚀 Can't keep up? Let the token carry you. #StayAfloat",
+        "ALT – where every digit dances to success! 💻🎶 (Disclaimer: Digits do not actually move, but the price might.)",
+        "Warning: ALT is so smooth, even your grandma might trade crypto. Proceed with caution. 👵💥",
+        "Why did the ALT token refuse treatment? Because it already had a stable condition! 💊✨",
+        "ALT’s volatility: Now with a side of pizza. 🍕 How much? Ask the market.",
+        "ALT’s secret superpower? Disappearing fees. 🦸♂️ (Don’t blink.)",
+        "ALT: Splitting the crypto atom (responsibly, of course).) 🌌 Physics be crazy, but so are prices!",
+        "ALT – because “alt” isn’t just a word, it’s a lifestyle. 🌍✨",
+        "Today's lesson: Even ALT can’t solve gravity. 📉 (But it’s trying hard) #AltDownMoment",
+        "Why worry? ALT’s got you covered… or doesn’t? 🤷♂️ Who even knows with crypto? 😎 #AltMagic"
+      ]
+    },
+    "output": "positive",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff734a75e036dad3d6f7d",
+    "timestamp": "2025-04-16T18:30:12.504000",
+    "action": "Validation Layer Passed",
+    "input": {
+      "token": "ALT",
+      "tweets": [
+        "ALT is soaring high! 🚀 Can't keep up? Let the token carry you. #StayAfloat",
+        "ALT – where every digit dances to success! 💻🎶 (Disclaimer: Digits do not actually move, but the price might.)",
+        "Warning: ALT is so smooth, even your grandma might trade crypto. Proceed with caution. 👵💥",
+        "Why did the ALT token refuse treatment? Because it already had a stable condition! 💊✨",
+        "ALT’s volatility: Now with a side of pizza. 🍕 How much? Ask the market.",
+        "ALT’s secret superpower? Disappearing fees. 🦸♂️ (Don’t blink.)",
+        "ALT: Splitting the crypto atom (responsibly, of course).) 🌌 Physics be crazy, but so are prices!",
+        "ALT – because “alt” isn’t just a word, it’s a lifestyle. 🌍✨",
+        "Today's lesson: Even ALT can’t solve gravity. 📉 (But it’s trying hard) #AltDownMoment",
+        "Why worry? ALT’s got you covered… or doesn’t? 🤷♂️ Who even knows with crypto? 😎 #AltMagic"
+      ],
+      "sentiment": "positive",
+      "expected_sentiment": "positive"
+    },
+    "output": "Sentiment matches",
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff734a75e036dad3d6f7e",
+    "timestamp": "2025-04-16T18:30:12.507000",
+    "action": "Get Historical Data",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "prices": [
+        58.87212812958444, 60.85967798198267, 62.50240428307952,
+        63.14802808983224, 65.09879527153628, 67.0127415135543,
+        67.63743443954893, 69.50294292835652, 70.20784194929588,
+        70.8554559346976
+      ],
+      "market_caps": [
+        41320794.00136471, 42898141.07061765, 44276149.11623275,
+        44969481.94071947, 46560168.00547376, 48004425.04710936,
+        48752470.62681816, 50284756.70841646, 51080714.506972715,
+        51819709.35301625
+      ],
+      "total_volumes": [
+        701873.6253327349, 704869.6689344548, 708391.1350946074,
+        712128.0473991589, 715223.1897881477, 716347.726758795,
+        720791.2457174993, 723491.0435411329, 727564.2305579371,
+        731343.9546670163
+      ]
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff734a75e036dad3d6f7f",
+    "timestamp": "2025-04-16T18:30:12.509000",
+    "action": "Detect Trends",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "prices": "positive",
+      "market_caps": "positive",
+      "total_volumes": "positive"
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff734a75e036dad3d6f80",
+    "timestamp": "2025-04-16T18:30:12.511000",
+    "action": "Get PNL Potential",
+    "input": {
+      "token": {
+        "token": "ALT",
+        "texts": [
+          "broooo DEAL and ALT are going to the moonnnn",
+          "Fuck yeah, also afford ALT",
+          "yayy im buying more ALT rnnn"
+        ],
+        "sentiment": "positive",
+        "confidence": 0.9
+      },
+      "historical_data": {
+        "prices": [
+          58.87212812958444, 60.85967798198267, 62.50240428307952,
+          63.14802808983224, 65.09879527153628, 67.0127415135543,
+          67.63743443954893, 69.50294292835652, 70.20784194929588,
+          70.8554559346976
+        ],
+        "market_caps": [
+          41320794.00136471, 42898141.07061765, 44276149.11623275,
+          44969481.94071947, 46560168.00547376, 48004425.04710936,
+          48752470.62681816, 50284756.70841646, 51080714.506972715,
+          51819709.35301625
+        ],
+        "total_volumes": [
+          701873.6253327349, 704869.6689344548, 708391.1350946074,
+          712128.0473991589, 715223.1897881477, 716347.726758795,
+          720791.2457174993, 723491.0435411329, 727564.2305579371,
+          731343.9546670163
+        ]
+      }
+    },
+    "output": 18.078150955966287,
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  },
+  {
+    "_id": "67fff73da75e036dad3d6f81",
+    "timestamp": "2025-04-16T18:30:21.419000",
+    "action": "Buy Token ALT",
+    "input": {
+      "token": "ALT",
+      "texts": [
+        "broooo DEAL and ALT are going to the moonnnn",
+        "Fuck yeah, also afford ALT",
+        "yayy im buying more ALT rnnn"
+      ],
+      "sentiment": "positive",
+      "confidence": 0.9
+    },
+    "output": {
+      "transaction_hash": "def1cae480ada6a7f8b5d409601bb6625f8696290a8ba712c24afe214b3d93db",
+      "status": 1,
+      "gas_used": 4949699,
+      "token_ticker": "ALT"
+    },
+    "user_id": "0xe34b40f38217f9Dc8c3534735f7f41B2cDA73A75"
+  }
+]
