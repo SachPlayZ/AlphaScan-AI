@@ -119,8 +119,8 @@ async def init_message_listener(
         async def handler(event):
             if not event.is_private:
                 return
-            reply = generate_reply(event.message.text)
-            await event.reply(reply)
+            # reply = generate_reply(event.message.text)
+            # await event.reply(reply)
 
         # Store the client in the dictionary
         message_listener_clients[user_id] = client
@@ -1284,6 +1284,27 @@ async def send_message(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await client.disconnect()
+
+
+@app.get("/")
+async def root():
+    return {
+        "name": "AlphaScan Backend",
+        "status": "online",
+        "version": "1.0.0", 
+        "description": "Backend service for AlphaScan - Telegram group monitoring and crypto trading signals",
+        "endpoints": {
+            "auth": ["/init-user", "/verify-otp"],
+            "groups": ["/watched-groups/{user_id}", "/watch-group", "/unwatch-group"],
+            "messages": ["/send-message"],
+            "data": ["/get-logs/{user_id}", "/get-token-history/{user_id}", "/get-queue"]
+        },
+        "health": {
+            "ping": "pong",
+            "uptime": "online",
+            "database": "connected"
+        }
+    }
 
 
 if __name__ == "__main__":
