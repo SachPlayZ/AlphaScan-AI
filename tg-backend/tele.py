@@ -540,7 +540,6 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
 
                 # Existing topic filtering logic...
                 if topic_id is not None:
-                    debug(f"FUCKING TOPIC ID {topic_id}")
                     if (
                         not hasattr(event.message, "reply_to")
                         or event.message.reply_to is None
@@ -556,7 +555,6 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
                     
                     # Fetch topic IDs dynamically within the handler to ensure freshness
                     current_topic_ids = await get_topic_ids(user_id)
-                    debug(f"{event.message.reply_to.reply_to_msg_id} {current_topic_ids} {event.message.reply_to}")
                     if event.message.reply_to.reply_to_msg_id not in current_topic_ids:
                         debug(
                             f"Message topic ID {event.message.reply_to.reply_to_msg_id} not in watched topics for user {user_id}"
@@ -567,10 +565,6 @@ async def watch_group_messages(user_id, group_id, topic_id=None):
                 if topic_id is not None and event.message.reply_to.reply_to_msg_id != topic_id:
                     debug(f"Message topic ID {event.message.reply_to.reply_to_msg_id} doesn't match specific watcher topic {topic_id}")
                     return
-
-
-                # Process the message
-                topicId = event.message.reply_to.reply_to_msg_id if topic_id is not None else None
                 
                 # Fetch the correct watch entry based on group_id and potentially topic_id
                 current_watch_entry = await db[WATCHED_GROUPS_COLLECTION].find_one(
@@ -696,11 +690,13 @@ def generate(prompt: str):
 
 
 def get_eth_balance(user_id: str) -> bool:
+    debug(f"Getting ETH balance for user {user_id}")
     balance = edu_balance(user_id)["edu_balance"]
     return balance > 0
 
 
 def get_token_balance(token: str, user_id: str) -> bool:
+    debug(f"Getting token balance for user {user_id} and token {token}")
     balance = token_balance(user_id, token)["token_balance"]
     return balance > 0
 
@@ -714,6 +710,7 @@ async def log_action(action: str, input_data: Any, output_data: Any, user_id: st
         input_data: The input data for the action
         output_data: The output/result of the action
     """
+    debug(f"Logging action: {action}")
     try:
         log_entry = {
             "timestamp": datetime.now(UTC),
