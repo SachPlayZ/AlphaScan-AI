@@ -41,6 +41,18 @@ export function ValidationLayerComponent({
             <span className="text-sm text-gray-400">Token Validation</span>
           </div>
 
+          {!matches && (
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-400">Sentiment Mismatch</span>
+              </div>
+              <p className="text-sm text-red-400">
+                The expected sentiment does not match the actual sentiment from tweets.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-lg bg-gray-800/50">
               <div className="flex items-center gap-2 mb-2">

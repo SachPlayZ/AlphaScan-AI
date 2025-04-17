@@ -23,7 +23,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),
+        # logging.StreamHandler(),
         logging.handlers.RotatingFileHandler(
             'app.log',
             maxBytes=10485760,  # 10MB
@@ -41,7 +41,7 @@ def debug(msg):
 
 def info(msg):
     logger.info(msg)
-    print(f"[bold green][INFO][/bold green] [white]{msg}[/white]")
+    print(f"[bold green][INFO][/bold green] {msg}")
 
 def warning(msg):
     logger.warning(msg)
@@ -763,16 +763,32 @@ def generate(prompt: str):
             debug(f"Attempt {retry_count} failed, retrying...")
 
 
-def get_eth_balance(user_id: str) -> bool:
+async def get_eth_balance(user_id: str) -> bool:
     debug(f"Getting ETH balance for user {user_id}")
     balance = edu_balance(user_id)["edu_balance"]
-    return balance > 0
+    if balance > 0:
+        await log_action(
+            "Check EDU Balance", "Check EDU Balance", {
+                "edu_balance": balance,
+                "edu_balance_validity": True
+            }, user_id
+        )
+        return True
+    return False
 
 
-def get_token_balance(token: str, user_id: str) -> bool:
+async def get_token_balance(token: str, user_id: str) -> bool:
     debug(f"Getting token balance for user {user_id} and token {token}")
     balance = token_balance(user_id, token)["token_balance"]
-    return balance > 0
+    if balance > 0:
+        await log_action(
+            "Check Token Balance", token, {
+                "token_balance": balance,
+                "token_balance_validity": True
+            }, user_id
+        )
+        return True
+    return False
 
 
 async def log_action(action: str, input_data: Any, output_data: Any, user_id: str) -> None:
@@ -853,11 +869,14 @@ async def analyse_texts(queue: List[Dict], user_id: str) -> Any:
             },
             user_id)
             return
-        if abs(pnl_potential) < 10:
-            await log_action(
-                "PNL Potential is too low", pnl_potential, "PNL Potential is too low", user_id
-            )
-            return
+        else:
+            await log_action("Trust Layer Approved", {
+                "token": token,
+                "sentiment": sentiment
+            }, {
+                "trust_validity": trust,
+                "pnl_potential": pnl_potential,
+            }, user_id)
         await transaction_layer(token, user_id)
     return
 
@@ -1124,6 +1143,12 @@ async def trust_layer(sentiment: str, token: Dict, user_id: str) -> Tuple[bool, 
         "token": token,
         "historical_data": historical_data,
     }, pnl_potential, user_id)
+
+    if abs(pnl_potential) < 10:
+        await log_action(
+            "PNL Potential is too low", pnl_potential, "Absolute PNL Potential is too low", user_id
+        )
+        return False, pnl_potential
 
     return True, pnl_potential
 

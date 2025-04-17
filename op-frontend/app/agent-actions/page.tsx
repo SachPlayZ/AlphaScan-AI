@@ -99,7 +99,10 @@ export default function AgentActionsPage() {
         .includes(searchQuery.toLowerCase());
 
     // Apply type filter
-    const matchesType = filterType === "all" || action.action === filterType;
+    const matchesType = filterType === "all" || 
+      (filterType === "Buy Token" && action.action.startsWith("Buy Token")) ||
+      (filterType === "Sell Token" && action.action.startsWith("Sell Token")) ||
+      (filterType !== "Buy Token" && filterType !== "Sell Token" && action.action === filterType);
 
     // Apply status filter
     const matchesStatus =
@@ -291,15 +294,13 @@ export default function AgentActionsPage() {
                     <SelectItem value="Analyse Tweets">
                       Analyse Tweets
                     </SelectItem>
-                    <SelectItem value="Buy Token ALT">Buy Token ALT</SelectItem>
-                    <SelectItem value="Buy Token DEAL">
-                      Buy Token DEAL
-                    </SelectItem>
+                    <SelectItem value="Buy Token">Buy Token</SelectItem>
+                    <SelectItem value="Sell Token">Sell Token</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
+              <div className="relative">
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filter by status" />
@@ -313,7 +314,7 @@ export default function AgentActionsPage() {
                 </Select>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 relative">
                 <Button
                   variant="outline"
                   className="flex-1 flex items-center justify-center"

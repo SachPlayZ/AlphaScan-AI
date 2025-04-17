@@ -6,8 +6,10 @@ import { AnalyzeAlphaComponent } from "./AnalyzeAlphaComponent";
 import { EduBalanceComponent } from "./EduBalanceComponent";
 import { AnalyzeTweetsComponent } from "./AnalyzeTweetsComponent";
 import { ValidationLayerComponent } from "./ValidationLayerComponent";
+import { ValidationLayerDeclinedComponent } from "./ValidationLayerDeclinedComponent";
 import { DetectTrendsComponent } from "./DetectTrendsComponent";
 import { PnlPotentialComponent } from "./PnlPotentialComponent";
+import { TokenBalanceCheckComponent } from "./TokenBalanceCheckComponent";
 
 interface ActionRendererProps {
   action: string;
@@ -36,8 +38,8 @@ export function ActionRenderer({ action, input, output }: ActionRendererProps) {
           />
         );
 
-      case "Buy Token DEAL":
-      case "Buy Token ALT":
+      case action.match(/^Buy Token [A-Z]+$/)?.input:
+      case action.match(/^Sell Token [A-Z]+$/)?.input:
         return <TransactionComponent details={output} />;
 
       case "Analyse Each Alpha":
@@ -51,13 +53,7 @@ export function ActionRenderer({ action, input, output }: ActionRendererProps) {
         );
 
       case "Check EDU Balance [Alpha is positive so we need to buy using EDU]":
-        return (
-          <EduBalanceComponent
-            balance={output === "Checking EDU balance" ? 1000 : 0} // This should come from actual balance check
-            required={500} // This should come from actual requirement
-            token={input.token}
-          />
-        );
+        return <EduBalanceComponent input={input} />;
 
       case "Analyse Tweets":
         return (
@@ -81,6 +77,19 @@ export function ActionRenderer({ action, input, output }: ActionRendererProps) {
           />
         );
 
+      case "Validation Layer":
+        return (
+          <ValidationLayerComponent
+            token={input.token}
+            sentiment={input.sentiment}
+            expected_sentiment={input.expected_sentiment}
+            matches={false}
+          />
+        );
+
+      case "Validation Layer Declined":
+        return <ValidationLayerDeclinedComponent input={input} output={output} />;
+
       case "Detect Trends":
         return (
           <DetectTrendsComponent
@@ -97,6 +106,9 @@ export function ActionRenderer({ action, input, output }: ActionRendererProps) {
             historical_data={input.historical_data}
           />
         );
+
+      case action.match(/^Check Token Balance \[Alpha is negative so we need to sell the token\]$/)?.input:
+        return <TokenBalanceCheckComponent input={input} />;
 
       default:
         return (
