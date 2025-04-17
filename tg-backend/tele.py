@@ -37,23 +37,23 @@ logger = logging.getLogger(__name__)
 # Custom logging functions that use the configured logger
 def debug(msg):
     logger.debug(msg)
-    print(f"[bold blue][DEBUG][/bold blue] [white]{msg}[/white]")
+    print(f"[blue]DEBUG[/blue]:\t  [white]{msg}[/white]")
 
 def info(msg):
     logger.info(msg)
-    print(f"[bold green][INFO][/bold green] {msg}")
+    print(f"[green]INFO[/green]:\t  [white]{msg}[/white]")
 
 def warning(msg):
     logger.warning(msg)
-    print(f"[bold yellow][WARNING][/bold yellow] [yellow]{msg}[/yellow]")
+    print(f"[yellow]WARNING[/yellow]:\t  [white]{msg}[/white]")
 
 def error(msg):
     logger.error(msg)
-    print(f"[bold red][ERROR][/bold red] [red]{msg}[/red]")
+    print(f"[red]ERROR[/red]:\t  [white]{msg}[/white]")
 
 def critical(msg):
     logger.critical(msg)
-    print(f"[bold white on red][CRITICAL][/bold white on red] [bold red]{msg}[/bold red]")
+    print(f"[bold white on red][CRITICAL][/bold white on red]\t  [bold red]{msg}[/bold red]")
 
 load_dotenv()
 
