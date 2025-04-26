@@ -1,30 +1,30 @@
 import { createConfig, http, cookieStorage, createStorage } from "wagmi";
 import { type Chain } from "viem";
 
-export const eduTestnet = {
-  id: 656476,
-  name: "EDU Chain Testnet",
-  nativeCurrency: { name: "EDU", symbol: "EDU", decimals: 18 },
+export const pharosDevnet = {
+  id: 50002,
+  name: "Pharos Devnet",
+  nativeCurrency: { name: "Pharos", symbol: "PHR", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://alpha-scan-ai.vercel.app/api/proxy"] },
+    default: { http: ["https://devnet.dplabs-internal.com"] },
   },
   blockExplorers: {
     default: {
-      name: "EduScan",
-      url: "https://edu-chain-testnet.blockscout.com/",
+      name: "Pharos Explorer",
+      url: "https://pharosscan.xyz/",
     },
   },
 } as const satisfies Chain;
 
 export function getConfig() {
   return createConfig({
-    chains: [eduTestnet],
+    chains: [pharosDevnet],
     ssr: true,
     storage: createStorage({
       storage: cookieStorage,
     }),
     transports: {
-      [eduTestnet.id]: http(),
+      [pharosDevnet.id]: http(),
     },
   });
 }

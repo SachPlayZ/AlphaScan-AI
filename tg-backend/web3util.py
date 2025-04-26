@@ -9,7 +9,7 @@ load_dotenv()
 with open("abi.json", "r") as f:
     abi = json.load(f)
 
-contract_address = "0x8fF00cED35C26EA1dC89F8B730F7949aC15F4116"
+contract_address = "0x3d17cBf62d36A7a1341c7D07BB190Bfc31421245"
 w3 = Web3(Web3.HTTPProvider(os.getenv("RPC_URL")))
 contract = w3.eth.contract(address=contract_address, abi=abi)
 
@@ -58,7 +58,7 @@ def token_balance(address: str, token_ticker: str):
         {"from": account.address}
     )
 
-    if token_ticker == "EDU":
+    if token_ticker == "PHR":
         token_balance = w3.eth.get_balance(public_key) / 10**18
         return {
             "public_key": public_key,
@@ -68,8 +68,8 @@ def token_balance(address: str, token_ticker: str):
         }
 
     token_addresses = {
-        "DEAL": "0x137454a48FD337C2C3558C01Ff40b67204dD5966",
-        "ALT": "0x74Ce2e9ef64018a1f7b1A0F035782045d566ef4f",
+        "DEAL": "0xaAa399D246E977945d45e5b126E7Eee9aaAc1862",
+        "ALT": "0xE20bB1AD3E17D299c2918CD5f152fF17fEe81E90",
     }
 
     token_address = token_addresses.get(token_ticker)
@@ -107,8 +107,8 @@ def buy_token(address: str, token_ticker: str, amount_in_eth: float):
     )
 
     token_addresses = {
-        "DEAL": "0x137454a48FD337C2C3558C01Ff40b67204dD5966",
-        "ALT": "0x74Ce2e9ef64018a1f7b1A0F035782045d566ef4f",
+        "DEAL": "0xaAa399D246E977945d45e5b126E7Eee9aaAc1862",
+        "ALT": "0xE20bB1AD3E17D299c2918CD5f152fF17fEe81E90",
     }
 
     token_address = token_addresses.get(token_ticker)
@@ -181,8 +181,8 @@ def sell_token(address: str, token_ticker: str, amount_in_tokens: float):
     )
 
     token_addresses = {
-        "DEAL": "0x137454a48FD337C2C3558C01Ff40b67204dD5966",
-        "ALT": "0x74Ce2e9ef64018a1f7b1A0F035782045d566ef4f",
+        "DEAL": "0xaAa399D246E977945d45e5b126E7Eee9aaAc1862",
+        "ALT": "0xE20bB1AD3E17D299c2918CD5f152fF17fEe81E90",
     }
 
     token_address = token_addresses.get(token_ticker)
