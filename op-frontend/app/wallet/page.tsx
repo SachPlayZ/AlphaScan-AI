@@ -24,7 +24,7 @@ import {
   updateEduBalance,
   sendEduTokens,
 } from "@/lib/wallet";
-import { eduTestnet } from "@/app/config";
+import { pharosDevnet } from "@/app/config";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -162,7 +162,7 @@ export default function WalletPage() {
   };
 
   const getExplorerAddressUrl = (address: string) => {
-    return `${eduTestnet.blockExplorers.default.url}/address/${address}`;
+    return `${pharosDevnet.blockExplorers.default.url}/address/${address}`;
   };
 
   const handleSendEduTokens = async (e: React.FormEvent) => {
@@ -217,7 +217,7 @@ export default function WalletPage() {
           action: result.txHash ? (
             <ToastAction altText="View on Explorer">
               <a
-                href={`${eduTestnet.blockExplorers.default.url}/tx/${result.txHash}`}
+                href={`${pharosDevnet.blockExplorers.default.url}/tx/${result.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -383,7 +383,7 @@ export default function WalletPage() {
                           action: (
                             <ToastAction altText="View on Explorer">
                               <a
-                                href={`${eduTestnet.blockExplorers.default.url}/tx/${tx}`}
+                                href={`${pharosDevnet.blockExplorers.default.url}/tx/${tx}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >

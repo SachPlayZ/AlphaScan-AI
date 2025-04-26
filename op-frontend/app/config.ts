@@ -11,7 +11,7 @@ export const pharosDevnet = {
   blockExplorers: {
     default: {
       name: "Pharos Explorer",
-      url: "https://pharosscan.xyz/",
+      url: "https://pharosscan.xyz",
     },
   },
 } as const satisfies Chain;
