@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { eduTestnet } from "@/app/config";
+import { pharosDevnet } from "@/app/config";
 
 // Define interfaces for wallet data and transactions
 export interface Transaction {
@@ -107,7 +107,7 @@ export async function updateEduBalance(
   try {
     // Create a provider for the Edu testnet using the local proxy
     const provider = new ethers.JsonRpcProvider(
-      "https://alpha-scan-ai.vercel.app/api/proxy"
+      "https://devnet.dplabs-internal.com"
     );
 
     // Get the native token (EDU) balance
@@ -155,7 +155,7 @@ export async function sendEduTokens(
 
     // Create a provider for the Edu testnet using the local proxy
     const provider = new ethers.JsonRpcProvider(
-      "https://alpha-scan-ai.vercel.app/api/proxy"
+      "https://devnet.dplabs-internal.com"
     );
 
     // Create a wallet instance with the private key
@@ -200,7 +200,7 @@ export async function sendEduTokens(
       gasLimit: gasLimit,
       gasPrice: adjustedGasPrice,
       nonce: nonce,
-      chainId: eduTestnet.id,
+      chainId: pharosDevnet.id,
       data: "0x",
     };
     // Note: We're not explicitly setting type property - letting ethers handle it
@@ -211,7 +211,7 @@ export async function sendEduTokens(
       gasLimit: gasLimit.toString(),
       gasPrice: ethers.formatUnits(adjustedGasPrice, "gwei") + " gwei",
       nonce: nonce,
-      chainId: eduTestnet.id,
+      chainId: pharosDevnet.id,
     });
 
     // Send transaction
@@ -295,7 +295,7 @@ export async function sendEduTokens(
         errorMessage.includes("timeout") ||
         errorMessage.includes("timed out")
       ) {
-        errorMessage = "Network timeout. The eduTestnet might be congested";
+        errorMessage = "Network timeout. The pharos might be congested";
       }
     }
 
@@ -354,7 +354,7 @@ export async function estimateTransactionGas(
 ): Promise<{ gasInWei: bigint; gasInEdu: number }> {
   try {
     const provider = new ethers.JsonRpcProvider(
-      "https://alpha-scan-ai.vercel.app/api/proxy"
+      "https://devnet.dplabs-internal.com"
     );
     const amountInWei = ethers.parseEther(amount.toString());
 
