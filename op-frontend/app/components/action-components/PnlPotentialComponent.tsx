@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   LineChart as LineChartIcon,
-  DollarSign,
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
@@ -65,7 +64,11 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
   };
 
   const getSlopeIcon = (slope: number) => {
-    return slope >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />;
+    return slope >= 0 ? (
+      <TrendingUp className="h-4 w-4" />
+    ) : (
+      <TrendingDown className="h-4 w-4" />
+    );
   };
 
   return (
@@ -76,8 +79,15 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
             <LineChartIcon className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-semibold">PNL Potential</h3>
           </div>
-          <Badge variant={isPositive ? "secondary" : "destructive"} className="flex items-center gap-1">
-            {isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          <Badge
+            variant={isPositive ? "secondary" : "destructive"}
+            className="flex items-center gap-1"
+          >
+            {isPositive ? (
+              <TrendingUp className="h-4 w-4" />
+            ) : (
+              <TrendingDown className="h-4 w-4" />
+            )}
             {Math.abs(pnl).toFixed(2)}% {isPositive ? "Gain" : "Loss"}
           </Badge>
         </div>
@@ -104,10 +114,10 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <XAxis dataKey="time" stroke="#888888" />
-                <YAxis 
-                  stroke="#888888" 
+                <YAxis
+                  stroke="#888888"
                   scale="log"
-                  domain={['auto', 'auto']}
+                  domain={["auto", "auto"]}
                   tickFormatter={(value) => formatValue(value)}
                 />
                 <Tooltip
@@ -121,7 +131,11 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
                           <div className="font-medium flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-[#2563eb]" />
                             Price: {formatValue(Number(payload[0].value))}
-                            <span className={`ml-2 flex items-center gap-1 ${getSlopeColor(priceSlope)}`}>
+                            <span
+                              className={`ml-2 flex items-center gap-1 ${getSlopeColor(
+                                priceSlope
+                              )}`}
+                            >
                               {getSlopeIcon(priceSlope)}
                               {Math.abs(priceSlope).toFixed(2)}%
                             </span>
@@ -129,7 +143,11 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
                           <div className="font-medium flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
                             Market Cap: {formatValue(Number(payload[1].value))}
-                            <span className={`ml-2 flex items-center gap-1 ${getSlopeColor(marketCapSlope)}`}>
+                            <span
+                              className={`ml-2 flex items-center gap-1 ${getSlopeColor(
+                                marketCapSlope
+                              )}`}
+                            >
                               {getSlopeIcon(marketCapSlope)}
                               {Math.abs(marketCapSlope).toFixed(2)}%
                             </span>
@@ -137,7 +155,11 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
                           <div className="font-medium flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
                             Volume: {formatValue(Number(payload[2].value))}
-                            <span className={`ml-2 flex items-center gap-1 ${getSlopeColor(volumeSlope)}`}>
+                            <span
+                              className={`ml-2 flex items-center gap-1 ${getSlopeColor(
+                                volumeSlope
+                              )}`}
+                            >
                               {getSlopeIcon(volumeSlope)}
                               {Math.abs(volumeSlope).toFixed(2)}%
                             </span>
@@ -148,7 +170,7 @@ export function PnlPotentialComponent({ pnl, historical_data }: PnlData) {
                     return null;
                   }}
                 />
-                <Legend 
+                <Legend
                   formatter={(value) => (
                     <span className="text-sm text-gray-400">{value}</span>
                   )}
