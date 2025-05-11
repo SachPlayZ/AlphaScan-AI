@@ -11,7 +11,8 @@ AlphaScanAI is a cutting-edge DeFAI (Decentralized Finance AI) agent that revolu
 - **Autonomous Trading**: AI-powered decision making for buy/sell operations
 - **Transparent Operations**: Clear visibility into the decision-making process
 
-![AlphaScanAI System Overview](assets/AlphaScan.jpeg)
+![AlphaScanAI System Overview](https://github.com/user-attachments/assets/e8a8951a-221b-4c1a-bdc1-a8d31de806b3)
+
 *AlphaScanAI Backend System Architecture Overview*
 
 
