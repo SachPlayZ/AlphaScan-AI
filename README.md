@@ -1,5 +1,5 @@
 # AlphaScanAI
-## 🏆 $10,000 3rd Place Prize Winner at OpenCampus EDUChain Semester 3 Hackathon and currently being incubated under OpenCampus Incubation Program
+## 🏆 3rd Place AI Track Prize Winner ($10,000) at OpenCampus EDUChain Semester 3 Hackathon and currently being incubated under OpenCampus Incubation Program
 
 AlphaScanAI is a cutting-edge DeFAI (Decentralized Finance AI) agent that revolutionizes crypto trading by providing intelligent, data-driven insights and automated trading decisions. Our platform combines Telegram signal monitoring, Twitter verification, and historical data analysis to deliver reliable trading opportunities.
 
